@@ -1,0 +1,41 @@
+/* Color Palette */
+
+$-color-black: #0f0f0f;
+$-color-white: #ffffff;
+
+$background-color-light: #f4f4f4;
+$text-color-light: #0f0f0f;
+$primary-color-light: #00ff97;
+$secondary-color-light: #7600ff;
+$info-color-light: #1bdfdf;
+$warning-color-light: #ff9022;
+$error-color-light:rgb(219, 32, 88);
+$text-color-bg-light: #ffffff;
+$gray-color-light: #c7c7c7;
+$gray-dark-color-light: #585858;
+$dark-color-light: #252525;
+
+$background-color-dark: #0f0f0f;
+$text-color-dark: #ffffff;
+$primary-color-dark: #00ff97;
+$text-color-bg-dark: #0f0f0f;
+
+/* Font */
+
+$font-small: 12px;
+$font-medium: 15px;
+$font-big: 18px;
+$font-xbig: 22px;
+
+
+:root {
+    --background-color-light: #{$background-color-light};
+    --text-color-light: #{$text-color-light};
+    --primary-color-light: #{$primary-color-light};
+    --text-color-bg-light: #{$text-color-bg-light};
+  
+    --background-color-dark: #{$background-color-dark};
+    --text-color-dark: #{$text-color-dark};
+    --primary-color-dark: #{$primary-color-dark};
+    --text-color-bg-dark: #{$text-color-bg-dark};
+  }
