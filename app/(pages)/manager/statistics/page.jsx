@@ -155,9 +155,9 @@ const Page = () => {
                 <div className="footer-container">
                   {
                     globalFilter ? (
-                      <span><b>{val2}</b></span>
+                      <span><b>{val2.toFixed(2)}</b></span>
                     ) : (
-                      <span>$<b>{val2}</b></span>
+                      <span>$<b>{val2.toFixed(2)}</b></span>
                     )
                   }
                 </div>
@@ -190,11 +190,11 @@ const Page = () => {
                                     {
                                       globalFilter ? (
                                         <>
-                                          <b>{dat.quantity}</b>u
+                                          <b>{dat.quantity.toFixed(2)}</b>u
                                         </>
                                       ) : (
                                         <>
-                                          $<b>{dat.totalSales}</b>
+                                          $<b>{dat.totalSales.toFixed(2)}</b>
                                         </>
                                       )
                                     }

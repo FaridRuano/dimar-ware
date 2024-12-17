@@ -64,7 +64,7 @@ const Page = () => {
                 </div>
               </div>
               <div className="footer-container">
-                <span>$<b>{totalSales}</b></span>
+                <span>$<b>{totalSales.toFixed(2)}</b></span>
               </div>
             </div>
             <div className="container">
