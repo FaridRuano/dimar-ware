@@ -5,8 +5,7 @@ import BtnView from '@public/assets/icons/btn-view.webp'
 import BtnDownload from '@public/assets/icons/btn-download.webp'
 import axios from '@node_modules/axios'
 
-
-const page = () => {
+const Page = () => {
 
   /* Current Date */
 
@@ -169,4 +168,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

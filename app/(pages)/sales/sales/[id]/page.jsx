@@ -8,7 +8,7 @@ import Trash from '@public/assets/icons/btn-trash.webp'
 import axios from '@node_modules/axios'
 
 
-const page = ({ params }) => {
+const Page = ({ params }) => {
 
 
   const { id } = React.use(params)
@@ -312,4 +312,4 @@ const page = ({ params }) => {
   )
 }
 
-export default page
+export default Page

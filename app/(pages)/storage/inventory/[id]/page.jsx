@@ -13,7 +13,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 
-const page = ({ params }) => {
+const Page = ({ params }) => {
 
   const { id } = React.use(params)
 
@@ -352,4 +352,4 @@ const page = ({ params }) => {
   )
 }
 
-export default page
+export default Page

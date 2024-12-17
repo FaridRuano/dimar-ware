@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import DtUser from '@public/assets/icons/sidebar-users.webp'
 import axios from '@node_modules/axios'
 
-const page = () => {
+const Page = () => {
 
   const [loading, setLoading] = useState(true)
 
@@ -149,4 +149,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

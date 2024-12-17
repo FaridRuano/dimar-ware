@@ -5,7 +5,7 @@ import DtUser from '@public/assets/icons/sidebar-users.webp'
 import { useRouter } from '@node_modules/next/navigation'
 import axios from '@node_modules/axios'
 
-const page = () => {
+const Page = () => {
 
   const router = useRouter()
 
@@ -287,4 +287,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

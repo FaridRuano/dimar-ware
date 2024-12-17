@@ -12,7 +12,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import axios from '@node_modules/axios'
 
-const page = () => {
+const Page = () => {
 
   const router = useRouter()
 
@@ -275,4 +275,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

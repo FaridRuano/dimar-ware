@@ -9,7 +9,7 @@ import axios from '@node_modules/axios'
 import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 
 
-const page = ({ params }) => {
+const Page = ({ params }) => {
 
 
   const { id } = React.use(params)
@@ -366,4 +366,4 @@ const page = ({ params }) => {
   )
 }
 
-export default page
+export default Page

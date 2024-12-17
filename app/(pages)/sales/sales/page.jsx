@@ -20,7 +20,7 @@ import axios from 'axios'
 import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 import ConfirmModal from '@public/components/modals/ConfirmModal'
 
-const page = () => {
+const Page = () => {
 
   const router = useRouter()
 
@@ -817,4 +817,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

@@ -7,7 +7,7 @@ import ArrowOut from '@public/assets/icons/arrow-out.webp'
 import Image from 'next/image'
 import axios from '@node_modules/axios'
 
-const page = () => {
+const Page = () => {
 
   /* Totales */
 
@@ -348,4 +348,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

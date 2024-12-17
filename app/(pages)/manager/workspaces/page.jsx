@@ -10,7 +10,7 @@ import Bills from '@public/assets/icons/sidebar-bills.webp'
 import Inventory from '@public/assets/icons/sidebar-inventory.webp'
 import { useRouter } from 'next/navigation'
 
-const page = () => {
+const Page = () => {
 
   const router = useRouter()
 
@@ -95,4 +95,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

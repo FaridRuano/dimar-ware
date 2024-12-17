@@ -17,7 +17,7 @@ import Image from 'next/image'
 import ConfirmModal from '@public/components/modals/ConfirmModal'
 import axios from 'axios'
 
-const page = () => {
+const Page = () => {
 
   /* Loading */
 
@@ -556,4 +556,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

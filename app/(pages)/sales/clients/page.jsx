@@ -17,7 +17,7 @@ import ConfirmModal from '@public/components/modals/ConfirmModal'
 import { jwtDecode } from 'jwt-decode'
 import axios from 'axios'
 
-const page = () => {
+const Page = () => {
 
   /* Loading */
 
@@ -482,4 +482,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
