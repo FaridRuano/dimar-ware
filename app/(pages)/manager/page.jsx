@@ -39,66 +39,29 @@ const Page = () => {
 
   const getLast6Months = () => {
     const months = [
-      {
-        id: 0,
-        month: 'ene'
-      },
-      {
-        id: 1,
-        month: 'feb'
-      },
-      {
-        id: 2,
-        month: 'mar'
-      },
-      {
-        id: 3,
-        month: 'abr'
-      },
-      {
-        id: 4,
-        month: 'may'
-      },
-      {
-        id: 5,
-        month: 'jun'
-      },
-      {
-        id: 6,
-        month: 'jul'
-      },
-      {
-        id: 7,
-        month: 'ago'
-      },
-      {
-        id: 8,
-        month: 'sep'
-      },
-      {
-        id: 9,
-        month: 'oct'
-      },
-      {
-        id: 10,
-        month: 'nov'
-      },
-      {
-        id: 11,
-        month: 'dic'
-      },
-
-
-    ];
-
-    const currentMonth = new Date().getMonth();
-    const last6Months = [];
-
+      { id: 0, month: 'ene' },
+      { id: 1, month: 'feb' },
+      { id: 2, month: 'mar' },
+      { id: 3, month: 'abr' },
+      { id: 4, month: 'may' },
+      { id: 5, month: 'jun' },
+      { id: 6, month: 'jul' },
+      { id: 7, month: 'ago' },
+      { id: 8, month: 'sep' },
+      { id: 9, month: 'oct' },
+      { id: 10, month: 'nov' },
+      { id: 11, month: 'dic' },
+    ]
+  
+    const currentMonth = new Date().getMonth()
+    const last6Months = []
+  
     for (let i = 0; i < 6; i++) {
-      const monthIndex = (currentMonth - i)
-      last6Months.push(months[monthIndex]);
+     
+      const monthIndex = (currentMonth - i + 12) % 12;
+      last6Months.push(months[monthIndex])
     }
-    return last6Months.reverse()
+    return last6Months.reverse();
   }
 
   const handleMonthClick = (monthIndex) => {
