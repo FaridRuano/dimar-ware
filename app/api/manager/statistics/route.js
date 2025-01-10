@@ -17,6 +17,7 @@ export async function POST(request) {
             val2: 0
         }
 
+
         if (!filter) {
 
 
@@ -89,6 +90,7 @@ export async function POST(request) {
                 let sellers
                 const today = new Date()
 
+
                 today.setUTCHours(today.getUTCHours() - 5)
 
                 let startDate, endDate
@@ -96,6 +98,11 @@ export async function POST(request) {
                 let lastMovements
 
                 lastMovements = await Sale.aggregate([
+                    {
+                        $match: {
+                            createdAt: { $gte: startDate, $lt: endDate }, // Filtrar por el rango de tiempo seleccionado
+                        },
+                    },
                     { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
                     { $limit: 15 }, // Limitar a las últimas 15 ventas
                     {
@@ -107,6 +114,7 @@ export async function POST(request) {
                         }
                     }
                 ])
+
                 switch (type) {
                     case 1:
                         startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -115,7 +123,10 @@ export async function POST(request) {
                         endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
                         endDate.setUTCHours(endDate.getUTCHours() - 5)
 
+
+
                         sales = await Sale.countDocuments({ createdAt: { $gte: startDate, $lt: endDate } })
+
                         totalAmount = await Sale.aggregate([
                             { $match: { createdAt: { $gte: startDate, $lt: endDate } } },
                             { $group: { _id: null, total: { $sum: "$total" } } },
@@ -145,7 +156,8 @@ export async function POST(request) {
                                     totalSales: 1, // Incluir el total de ventas
                                 },
                             },
-                        ]);
+                        ])
+
                         break
 
                     case 2: // Ventas de esta semana
@@ -192,7 +204,25 @@ export async function POST(request) {
                                     totalSales: 1, // Incluir el total de ventas
                                 },
                             },
-                        ]);
+                        ])
+
+                        lastMovements = await Sale.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startOfWeek, $lt: endOfWeek }, // Filtrar por el rango de tiempo seleccionado
+                                },
+                            },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$saler",
+                                    info: "$billData.name",
+                                    value: "$total"
+                                }
+                            }
+                        ])
                         break
 
                     case 3: // Ventas de este mes
@@ -232,7 +262,24 @@ export async function POST(request) {
                                     totalSales: 1, // Incluir el total de ventas
                                 },
                             },
-                        ]);
+                        ])
+                        lastMovements = await Sale.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startDate, $lt: endDate }, // Filtrar por el rango de tiempo seleccionado
+                                },
+                            },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$saler",
+                                    info: "$billData.name",
+                                    value: "$total"
+                                }
+                            }
+                        ])
                         break
 
                     case 4: // Ventas de este año
@@ -272,7 +319,24 @@ export async function POST(request) {
                                     totalSales: 1, // Incluir el total de ventas
                                 },
                             },
-                        ]);
+                        ])
+                        lastMovements = await Sale.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startDate, $lt: endDate }, // Filtrar por el rango de tiempo seleccionado
+                                },
+                            },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$saler",
+                                    info: "$billData.name",
+                                    value: "$total"
+                                }
+                            }
+                        ])
                         break
 
                     default: // Caso por defecto (sin filtro)
@@ -301,12 +365,20 @@ export async function POST(request) {
                         break
                 }
 
+                if (totalAmount.length > 0) {
+                    data.val2 = totalAmount[0].total
+                } else {
+                    data.val2 = 0
+                }
+
                 data.val1 = sales
-                data.val2 = totalAmount[0].total
+
                 data.xsData = sellers
                 data.data = lastMovements
-            }
+                console.log(lastMovements)
 
+
+            }
 
         } else {
             if (initDate !== '' && endDate !== '') {
@@ -326,36 +398,43 @@ export async function POST(request) {
                 const latestEntriesExits = []
 
                 for (const product of products) {
-
                     if (!product.inventory || product.inventory.length === 0) {
-                        console.log('Inventario vacío, se ignora este producto');
-                    } else {
-                        const todayRecords = product.inventory.filter(record => {
-                            if (!record.date) return false;
-                            const recordDate = new Date(record.date);
-                            return recordDate >= initDateObj && recordDate <= endDateObj;
-                        })
-
-                        entries += todayRecords.filter(record => record.method === 'Entrada').length;
-                        exits += todayRecords.filter(record => record.method === 'Salida').length;
-
-                        // Agregar registros recientes de este producto al arreglo principal
-                        product.inventory
-                            .slice()
-                            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar registros del producto por fecha
-                            .slice(0, 15) // Tomar solo los 15 más recientes
-                            .forEach(record => {
-                                latestEntriesExits.push({
-                                    user: product.name,
-                                    value: record.amount,
-                                    info: record.method,
-                                    date: record.date, // Asegúrate de incluir la fecha para ordenar luego
-                                });
-                            });
+                        console.log('Inventario vacío, se ignora este producto:', product.name || "Sin nombre");
+                        continue;
                     }
-                }
-                latestEntriesExits.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+                    // Filtrar registros dentro del rango de fechas
+                    const todayRecords = product.inventory.filter(record => {
+                        if (!record.date) return false; // Ignorar registros sin fecha
+                        const recordDate = new Date(record.date);
+                        return recordDate >= initDateObj && recordDate <= endDateObj; // Rango de fechas
+                    });
+
+                    // Contar entradas y salidas
+                    entries += todayRecords.filter(record => record.method === 'Entrada').length;
+                    exits += todayRecords.filter(record => record.method === 'Salida').length;
+
+                    // Ordenar y tomar los 15 registros más recientes
+                    const recentRecords = todayRecords
+                        .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
+                        .slice(0, 15)
+
+                    // Agregar registros recientes a `latestEntriesExits`
+                    recentRecords.forEach(record => {
+                        if (record.date && record.amount !== undefined && record.method) {
+                            latestEntriesExits.push({
+                                user: product.name || "Unknown", // Nombre del producto
+                                value: record.amount, // Cantidad del registro
+                                info: record.method, // Método (Entrada/Salida)
+                                date: record.date, // Fecha del registro
+                            });
+                        } else {
+                            console.warn("Registro inválido encontrado:", record);
+                        }
+                    });
+                }
+
+                latestEntriesExits.sort((a, b) => new Date(b.date) - new Date(a.date))
 
                 const sales = await Sale.find({
                     createdAt: {
@@ -390,11 +469,12 @@ export async function POST(request) {
                 const sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
 
                 const top5Products = sortedProducts.slice(0, 4)
-
                 data.val1 = exits
                 data.val2 = entries
-                data.data = latestEntriesExits
+                data.data = latestEntriesExits.slice(0,15)
                 data.xsData = top5Products
+
+
             } else {
                 let exits = 0
                 let entries = 0
@@ -426,31 +506,38 @@ export async function POST(request) {
 
                             if (!product.inventory || product.inventory.length === 0) {
                                 console.log('Inventario vacío, se ignora este producto');
-                            } else {
-                                const todayRecords = product.inventory.filter(record => {
-                                    if (!record.date) return false;
-                                    const recordDate = new Date(record.date);
-                                    return recordDate >= startDate && recordDate <= endDate;
-                                })
-
-                                entries += todayRecords.filter(record => record.method === 'Entrada').length;
-                                exits += todayRecords.filter(record => record.method === 'Salida').length;
-
-                                // Agregar registros recientes de este producto al arreglo principal
-                                product.inventory
-                                    .slice()
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar registros del producto por fecha
-                                    .slice(0, 15) // Tomar solo los 15 más recientes
-                                    .forEach(record => {
-                                        latestEntriesExits.push({
-                                            user: product.name,
-                                            value: record.amount,
-                                            info: record.method,
-                                            date: record.date, // Asegúrate de incluir la fecha para ordenar luego
-                                        });
-                                    });
                             }
+                            // Filtrar los registros dentro del rango de fechas
+                            const filteredRecords = product.inventory.filter(record => {
+                                if (!record.date) return false; // Ignorar registros sin fecha
+                                const recordDate = new Date(record.date);
+                                return recordDate >= startDate && recordDate < endDate; // Dentro del rango
+                            });
+
+                            // Contar entradas y salidas de los registros filtrados
+                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
+                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
+
+                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
+                            const recentRecords = filteredRecords
+                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
+                                .slice(0, 15); // Tomar los 15 registros más recientes
+
+                            // Agregar registros procesados a latestEntriesExits
+                            recentRecords.forEach(record => {
+                                if (record.date && record.amount !== undefined && record.method) {
+                                    latestEntriesExits.push({
+                                        user: product.name || "Unknown", // Nombre del producto
+                                        value: record.amount, // Cantidad del registro
+                                        info: record.method, // Método (Entrada/Salida)
+                                        date: record.date, // Fecha del registro
+                                    });
+                                } else {
+                                    console.warn("Registro inválido encontrado:", record);
+                                }
+                            })
                         }
+
 
                         sales = await Sale.find({
                             createdAt: {
@@ -482,8 +569,8 @@ export async function POST(request) {
                         })
 
                         sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
-
                         top5Products = sortedProducts.slice(0, 4)
+
                         break
 
                     case 2: // Ventas de esta semana
@@ -503,30 +590,35 @@ export async function POST(request) {
                         for (const product of products) {
                             if (!product.inventory || product.inventory.length === 0) {
                                 console.log('Inventario vacío, se ignora este producto');
-                            } else {
-                                const todayRecords = product.inventory.filter(record => {
-                                    if (!record.date) return false;
-                                    const recordDate = new Date(record.date);
-                                    return recordDate >= startOfWeek && recordDate <= endOfWeek;
-                                });
+                            } // Filtrar los registros dentro del rango de fechas
+                            const filteredRecords = product.inventory.filter(record => {
+                                if (!record.date) return false; // Ignorar registros sin fecha
+                                const recordDate = new Date(record.date);
+                                return recordDate >= startOfWeek && recordDate < endOfWeek; // Dentro del rango
+                            });
 
-                                entries += todayRecords.filter(record => record.method === 'Entrada').length;
-                                exits += todayRecords.filter(record => record.method === 'Salida').length;
+                            // Contar entradas y salidas de los registros filtrados
+                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
+                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
 
-                                // Agregar registros recientes de este producto al arreglo principal
-                                product.inventory
-                                    .slice()
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar registros del producto por fecha
-                                    .slice(0, 15) // Tomar solo los 15 más recientes
-                                    .forEach(record => {
-                                        latestEntriesExits.push({
-                                            user: product.name,
-                                            value: record.amount,
-                                            info: record.method,
-                                            date: record.date, // Asegúrate de incluir la fecha para ordenar luego
-                                        });
+                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
+                            const recentRecords = filteredRecords
+                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
+                                .slice(0, 15); // Tomar los 15 registros más recientes
+
+                            // Agregar registros procesados a latestEntriesExits
+                            recentRecords.forEach(record => {
+                                if (record.date && record.amount !== undefined && record.method) {
+                                    latestEntriesExits.push({
+                                        user: product.name || "Unknown", // Nombre del producto
+                                        value: record.amount, // Cantidad del registro
+                                        info: record.method, // Método (Entrada/Salida)
+                                        date: record.date, // Fecha del registro
                                     });
-                            }
+                                } else {
+                                    console.warn("Registro inválido encontrado:", record);
+                                }
+                            });
                         }
                         sales = await Sale.find({
                             createdAt: {
@@ -572,30 +664,36 @@ export async function POST(request) {
                         for (const product of products) {
                             if (!product.inventory || product.inventory.length === 0) {
                                 console.log('Inventario vacío, se ignora este producto');
-                            } else {
-                                const todayRecords = product.inventory.filter(record => {
-                                    if (!record.date) return false;
-                                    const recordDate = new Date(record.date);
-                                    return recordDate >= startDate && recordDate <= endDate;
-                                });
-
-                                entries += todayRecords.filter(record => record.method === 'Entrada').length;
-                                exits += todayRecords.filter(record => record.method === 'Salida').length;
-
-                                // Agregar registros recientes de este producto al arreglo principal
-                                product.inventory
-                                    .slice()
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar registros del producto por fecha
-                                    .slice(0, 15) // Tomar solo los 15 más recientes
-                                    .forEach(record => {
-                                        latestEntriesExits.push({
-                                            user: product.name,
-                                            value: record.amount,
-                                            info: record.method,
-                                            date: record.date, // Asegúrate de incluir la fecha para ordenar luego
-                                        });
-                                    });
                             }
+                            // Filtrar los registros dentro del rango de fechas
+                            const filteredRecords = product.inventory.filter(record => {
+                                if (!record.date) return false; // Ignorar registros sin fecha
+                                const recordDate = new Date(record.date);
+                                return recordDate >= startDate && recordDate < endDate; // Dentro del rango
+                            });
+
+                            // Contar entradas y salidas de los registros filtrados
+                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
+                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
+
+                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
+                            const recentRecords = filteredRecords
+                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
+                                .slice(0, 15); // Tomar los 15 registros más recientes
+
+                            // Agregar registros procesados a latestEntriesExits
+                            recentRecords.forEach(record => {
+                                if (record.date && record.amount !== undefined && record.method) {
+                                    latestEntriesExits.push({
+                                        user: product.name || "Unknown", // Nombre del producto
+                                        value: record.amount, // Cantidad del registro
+                                        info: record.method, // Método (Entrada/Salida)
+                                        date: record.date, // Fecha del registro
+                                    });
+                                } else {
+                                    console.warn("Registro inválido encontrado:", record);
+                                }
+                            })
                         }
                         sales = await Sale.find({
                             createdAt: {
@@ -641,30 +739,36 @@ export async function POST(request) {
                         for (const product of products) {
                             if (!product.inventory || product.inventory.length === 0) {
                                 console.log('Inventario vacío, se ignora este producto');
-                            } else {
-                                const todayRecords = product.inventory.filter(record => {
-                                    if (!record.date) return false;
-                                    const recordDate = new Date(record.date);
-                                    return recordDate >= startDate && recordDate <= endDate;
-                                });
-
-                                entries += todayRecords.filter(record => record.method === 'Entrada').length;
-                                exits += todayRecords.filter(record => record.method === 'Salida').length;
-
-                                // Agregar registros recientes de este producto al arreglo principal
-                                product.inventory
-                                    .slice()
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar registros del producto por fecha
-                                    .slice(0, 15) // Tomar solo los 15 más recientes
-                                    .forEach(record => {
-                                        latestEntriesExits.push({
-                                            user: product.name,
-                                            value: record.amount,
-                                            info: record.method,
-                                            date: record.date, // Asegúrate de incluir la fecha para ordenar luego
-                                        });
-                                    });
                             }
+                            // Filtrar los registros dentro del rango de fechas
+                            const filteredRecords = product.inventory.filter(record => {
+                                if (!record.date) return false; // Ignorar registros sin fecha
+                                const recordDate = new Date(record.date);
+                                return recordDate >= startDate && recordDate < endDate; // Dentro del rango
+                            });
+
+                            // Contar entradas y salidas de los registros filtrados
+                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
+                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
+
+                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
+                            const recentRecords = filteredRecords
+                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
+                                .slice(0, 15); // Tomar los 15 registros más recientes
+
+                            // Agregar registros procesados a latestEntriesExits
+                            recentRecords.forEach(record => {
+                                if (record.date && record.amount !== undefined && record.method) {
+                                    latestEntriesExits.push({
+                                        user: product.name || "Unknown", // Nombre del producto
+                                        value: record.amount, // Cantidad del registro
+                                        info: record.method, // Método (Entrada/Salida)
+                                        date: record.date, // Fecha del registro
+                                    });
+                                } else {
+                                    console.warn("Registro inválido encontrado:", record);
+                                }
+                            })
                         }
                         sales = await Sale.find({
                             createdAt: {
@@ -704,7 +808,7 @@ export async function POST(request) {
                         break
                 }
 
-                latestEntriesExits.sort((a, b) => new Date(b.date) - new Date(a.date));
+                latestEntriesExits.sort((a, b) => new Date(b.date) - new Date(a.date))
 
                 data.val1 = exits
                 data.val2 = entries
@@ -712,6 +816,7 @@ export async function POST(request) {
                 data.xsData = top5Products
             }
         }
+
 
         return NextResponse.json(
             {

@@ -10,9 +10,9 @@ export async function POST(request) {
 
         await connectMongoDB()
 
-        const { month } = await request.json()
+        const { month, year } = await request.json()
 
-        if (month === null) {
+        if (month === null || year === null) {
             return NextResponse.json(
                 {
                     data: {
@@ -27,13 +27,12 @@ export async function POST(request) {
 
         /* VENTAS */
 
-        const year = new Date().getFullYear()
+        const startOfMonth = moment.tz(`${year}-${String(month + 1).padStart(2, '0')}-01`, "America/Guayaquil").startOf('month')
+        const endOfMonth = moment.tz(`${year}-${String(month + 1).padStart(2, '0')}-01`, "America/Guayaquil").endOf('month')
 
-        const startOfMonth = moment.tz(`${year}-${month + 1}-01`, "America/Guayaquil").startOf('month')
-        const endOfMonth = moment.tz(`${year}-${month + 1}-01`, "America/Guayaquil").endOf('month')
 
         const sales = await Sale.find({
-            createdAt: {
+            updatedAt: {
                 $gte: startOfMonth.toDate(),
                 $lte: endOfMonth.toDate(),
             },
@@ -85,26 +84,62 @@ export async function POST(request) {
             .slice(0, 3)
 
         /* ENTRADAS Y SALIDAS */
-
-        const products = await Product.find({
-            'inventory.date': {
-                $gte: startOfMonth.toDate(),
-                $lte: endOfMonth.toDate(),
+        const productsAll = await Product.aggregate([
+            {
+                $match: {
+                    'inventory.date': {
+                        $gte: startOfMonth.toDate(),
+                        $lte: endOfMonth.toDate()
+                    }
+                }
+            },
+            {
+                $unwind: "$inventory"
+            },
+            {
+                $group: {
+                    _id: {
+                        reason: "$inventory.reason",
+                        amount: "$inventory.amount",
+                        method: "$inventory.method",
+                        newStock: "$inventory.newStock",
+                        date: "$inventory.date",
+                        productId: "$_id"
+                    },
+                    uniqueInventory: { $first: "$inventory" }
+                }
+            },
+            {
+                $replaceRoot: { newRoot: "$uniqueInventory" }
+            },
+            {
+                $project: {
+                    reason: 1,
+                    amount: 1,
+                    method: 1,
+                    newStock: 1,
+                    date: 1,
+                    productId: "$_id.productId"
+                }
             }
-        }).select('inventory')
+        ])
+
+        const products = productsAll.filter(item => {
+            const itemDate = moment(item.date, "YYYY-MM-DD");
+            return itemDate.isBetween(startOfMonth, endOfMonth, null, '[]');
+        })
+
+        console.log(products)
 
         let totalEntries = 0
         let totalExits = 0
 
         products.forEach(product => {
-            if (product.inventory && product.inventory.length > 0) {
-                product.inventory.forEach(record => {
-                    if (record.method === "Entrada") {
-                        totalEntries += Number(record.amount)
-                    } else if (record.method === "Salida") {
-                        totalExits += Math.abs(Number(record.amount))
-                    }
-                })
+            if (product.method === "Entrada") {
+                console.log(product)
+                totalEntries += Number(product.amount)
+            } else if (product.method === "Salida") {
+                totalExits += Math.abs(Number(product.amount))
             }
         })
 
@@ -122,6 +157,7 @@ export async function POST(request) {
             }
             return sum;
         }, 0)
+
 
         const data = {
             totalSales: totalSales.toFixed(2),

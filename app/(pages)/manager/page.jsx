@@ -33,7 +33,11 @@ const Page = () => {
 
   const [monthlySales, setMonthlySales] = useState('0.00')
 
-  const [activeMonth, setActiveMonth] = useState(new Date().getMonth());
+  const [activeMonth, setActiveMonth] = useState({
+    id: new Date().getMonth(),
+    month: '',
+    year: new Date().getFullYear()
+  })
 
   const [topSellers, setTopSellers] = useState([])
 
@@ -52,20 +56,25 @@ const Page = () => {
       { id: 10, month: 'nov' },
       { id: 11, month: 'dic' },
     ]
-  
+
     const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
     const last6Months = []
-  
+
     for (let i = 0; i < 6; i++) {
-     
-      const monthIndex = (currentMonth - i + 12) % 12;
-      last6Months.push(months[monthIndex])
+      const monthIndex = (currentMonth - i + 12) % 12
+      const year = currentYear - (currentMonth - i < 0 ? 1 : 0)
+      last6Months.push({
+        id: months[monthIndex].id,
+        month: months[monthIndex].month,
+        year,
+      })
     }
-    return last6Months.reverse();
+    return last6Months.reverse()
   }
 
-  const handleMonthClick = (monthIndex) => {
-    setActiveMonth(monthIndex)
+  const handleMonthClick = (mth) => {
+    setActiveMonth(mth)
   }
 
   const currentYear = new Date().getFullYear()
@@ -79,7 +88,8 @@ const Page = () => {
 
   const fetchData = async () => {
     const dataObject = {
-      month: activeMonth
+      month: activeMonth.id,
+      year: activeMonth.year
     }
     try {
       const res = await axios.post('/api/manager', dataObject)
@@ -98,8 +108,11 @@ const Page = () => {
   }
 
   useEffect(() => {
-    const currentMonth = new Date().getMonth()
-    setActiveMonth(currentMonth)
+    setActiveMonth({
+      id: new Date().getMonth(),
+      month: '',
+      year: new Date().getFullYear()
+    })
   }, [])
 
   useEffect(() => {
@@ -124,8 +137,8 @@ const Page = () => {
                 {getLast6Months().map((month, index) => (
                   <button
                     key={index}
-                    className={`option ${activeMonth === month.id ? 'active' : ''}`}
-                    onClick={() => handleMonthClick(month.id)}
+                    className={`option ${activeMonth.id === month.id ? 'active' : ''}`}
+                    onClick={() => handleMonthClick(month)}
                   >
                     {month.month}
                   </button>

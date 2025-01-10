@@ -163,7 +163,7 @@ const Page = ({ params }) => {
     try {
 
       const res = await axios.post('/api/billing/bill', dataObject)
-      console.log(res.data)
+      //console.log(res.data)
       router.push('/billing/sales')
     } catch (e) {
       console.log(e)
