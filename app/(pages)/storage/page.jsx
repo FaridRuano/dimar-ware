@@ -26,7 +26,8 @@ const Page = () => {
       setEntries(data.entriesToday)
       setExits(data.exitsToday)
       setLowStockData(data.lowStockProducts)
-      setDataMoves(data.latestEntriesExits)
+      setDataMoves(data.latestEntriesExits.slice(0,15))
+      console.log(data.latestEntriesExits.length)
     } catch (e) {
       console.log(e)
     }
