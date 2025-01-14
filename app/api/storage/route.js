@@ -68,6 +68,8 @@ export async function GET(request) {
     const sortedProducts = products.sort((a, b) => a.stock - b.stock);
     lowStockProducts = sortedProducts.slice(0, 4);
 
+    latestEntriesExits.slice(0,15)
+
     return NextResponse.json(
         {
             totalInventory,
