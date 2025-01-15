@@ -1312,7 +1312,7 @@ export async function POST(request) {
             attachments: [
                 {
                     filename: `${invoice.factura.infoTributaria.claveAcceso}.xml`, // The name of the attached file
-                    content: signXml.toString(), // The XML data as a string
+                    content: signedXml.toString(), // The XML data as a string
                 },
             ],
         }
