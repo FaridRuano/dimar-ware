@@ -3,6 +3,7 @@ import Client from "@models/clientModel"
 import Product from "@models/productModel"
 import Sale from "@models/saleModel"
 import { NextResponse } from "next/server"
+import nodemailer from 'nodemailer';
 
 export async function GET(request) {
     try {

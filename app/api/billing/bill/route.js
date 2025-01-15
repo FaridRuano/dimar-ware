@@ -1313,18 +1313,26 @@ export async function POST(request) {
 
         try {
             // Send the email
-            const info = await transporter.sendMail(mailOptions);
-            console.log('Email sent: ', info.response);
+            const info = await transporter.sendMail(mailOptions)
+            console.log('Email sent: ', info.response)
+
+            return NextResponse.json(
+                {
+                    msg: info.response
+                },
+                { status: 200 }
+            )
         } catch (error) {
-            console.error('Error sending email: ', error);
+            console.error('Error sending email: ', error)
+            return NextResponse.json(
+                {
+                    msg: error
+                },
+                { status: 200 }
+            )
         }
 
-        return NextResponse.json(
-            {
-                msg: invoice 
-            },
-            { status: 200 }
-        )
+        
 
     } catch (error) {
         return NextResponse.json(
