@@ -10,6 +10,8 @@ import axios from "@node_modules/axios"
 import { documentAuthorization, documentReception } from "@node_modules/open-factura/dist"
 var xadesjs = require("xadesjs")
 var { Crypto } = require("@peculiar/webcrypto")
+import nodemailer from 'nodemailer';
+
 
 // Configura AWS SDK
 AWS.config.update({
@@ -19,6 +21,16 @@ AWS.config.update({
 let s3 = new AWS.S3({
     accesKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+})
+
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_SERVER_HOST,
+    port: process.env.EMAIL_SERVER_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_SERVER_USER,
+      pass: process.env.EMAIL_SERVER_PASSWORD,
+    },
 })
 
 async function getP12S3() {
@@ -46,8 +58,6 @@ async function getP12S3() {
         throw error
     }
 }
-
-
 
 function chooseTypeClient(type) {
     switch (type) {
@@ -637,8 +647,6 @@ async function signXml2(p12Password, invoiceXml) {
 
     /* ============================================= */
 
-    console.log(xml.replace(/(<[^<]+)$/, xadesBes + "$1"))
-
     return xml.replace(/(<[^<]+)$/, xadesBes + "$1")
 }
 
@@ -947,6 +955,7 @@ async function signXml(p12Password, invoiceXml) {
 
     return xml.replace(/(<[^<]+)$/, xadesBes + "$1");
 }
+
 
 /* async function signXml(p12Password, invoiceXml) {
 
@@ -1295,9 +1304,24 @@ export async function POST(request) {
             process.env.SRI_AUTHORIZATION_URL
         )
 
+        const mailOptions = {
+            from: 'fruanocm2777@gmail.com',
+            to: updatedSale.billData.email,
+            subject: `Comprobante Electronico: ${invoice.factura.infoTributaria.claveAcceso}`,
+            text: `Gracias por tu compra, puedes revisar tu comprobante electronico en el archivo: `,
+        }
+
+        try {
+            // Send the email
+            const info = await transporter.sendMail(mailOptions);
+            console.log('Email sent: ', info.response);
+        } catch (error) {
+            console.error('Error sending email: ', error);
+        }
+
         return NextResponse.json(
             {
-                msg: authorizationResult
+                msg: invoice 
             },
             { status: 200 }
         )

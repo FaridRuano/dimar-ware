@@ -37,7 +37,7 @@ export async function GET(request) {
 
         if (type === 1) {
             sales = await Sale.find(query, '_id cod billData.name total status')
-                .sort({ updatedAt: -1 })
+                .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .exec()
@@ -46,7 +46,7 @@ export async function GET(request) {
 
         } else if (type === 2) {
             sales = await Sale.find({ status: 'Pendiente' }, '_id cod billData.name total status')
-                .sort({ updatedAt: -1 })
+                .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .exec()
@@ -55,7 +55,7 @@ export async function GET(request) {
 
         } else if (type === 3) {
             sales = await Sale.find({ status: 'Por Entregar' }, '_id cod billData.name total status')
-                .sort({ updatedAt: -1 })
+                .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .exec()
@@ -64,7 +64,7 @@ export async function GET(request) {
 
         } else if (type === 4) {
             sales = await Sale.find({ status: 'Completa' }, '_id cod billData.name total status')
-                .sort({ updatedAt: -1 })
+                .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .exec()

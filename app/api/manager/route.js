@@ -129,14 +129,11 @@ export async function POST(request) {
             return itemDate.isBetween(startOfMonth, endOfMonth, null, '[]');
         })
 
-        console.log(products)
-
         let totalEntries = 0
         let totalExits = 0
 
         products.forEach(product => {
             if (product.method === "Entrada") {
-                console.log(product)
                 totalEntries += Number(product.amount)
             } else if (product.method === "Salida") {
                 totalExits += Math.abs(Number(product.amount))
