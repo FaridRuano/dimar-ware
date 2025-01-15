@@ -1305,10 +1305,16 @@ export async function POST(request) {
         )
 
         const mailOptions = {
-            from: 'fruanocm2777@gmail.com',
+            from: process.env.EMAIL_FROM,
             to: updatedSale.billData.email,
             subject: `Comprobante Electronico: ${invoice.factura.infoTributaria.claveAcceso}`,
             text: `Gracias por tu compra, puedes revisar tu comprobante electronico en el archivo: `,
+            attachments: [
+                {
+                    filename: `${invoice.factura.infoTributaria.claveAcceso}.xml`, // The name of the attached file
+                    content: signXml.toString(), // The XML data as a string
+                },
+            ],
         }
 
         try {
