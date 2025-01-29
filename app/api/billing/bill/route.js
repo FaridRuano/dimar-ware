@@ -494,7 +494,7 @@ async function signXml2(p12Password, invoiceXml) {
 
     const canonKeyInfo = keyInfo.replace(
         "<ds:KeyInfo",
-        "<ds:KeyInfo" + nameSpaces
+        "<ds:KeyInfo " + nameSpaces
     )
 
     const sha1KeyInfo = sha1Base64(canonKeyInfo)
