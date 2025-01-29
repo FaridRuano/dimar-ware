@@ -1289,12 +1289,12 @@ export async function POST(request) {
             to: updatedSale.billData.email,
             subject: `Comprobante Electronico: ${invoice.factura.infoTributaria.claveAcceso}`,
             text: `Gracias por tu compra, puedes revisar tu comprobante electronico en el archivo: `,
-            /* attachments: [
+            attachments: [
                 {
                     filename: `${invoice.factura.infoTributaria.claveAcceso}.xml`,
                     content: signedXml.toString(), 
                 },
-            ], */
+            ],
         }
 
         await Sale.updateOne(
@@ -1313,7 +1313,7 @@ export async function POST(request) {
 
             return NextResponse.json(
                 {
-                    msg: authorizationResult
+                    msg: info
                 },
                 { status: 200 }
             )
