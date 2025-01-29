@@ -314,12 +314,12 @@ async function signXml2(p12Password, invoiceXml) {
 
     let xml = invoiceXml
 
-    xml = xml
+/*     xml = xml
         .replace(/\s+/g, " ")
         .trim()
         .replace(/(?<=\>)(\r?\n)|(\r?\n)(?=\<\/)/g, "")
         .trim()
-        .replace(/(?<=\>)(\s*)/g, "")
+        .replace(/(?<=\>)(\s*)/g, "") */
 
     /* ===============FIRMA DIGITAL================= */
 
@@ -499,7 +499,7 @@ async function signXml2(p12Password, invoiceXml) {
 
     const sha1KeyInfo = sha1Base64(canonKeyInfo)
 
-    const sha1Comprobante = sha1Base64(invoiceXml.replace('<?xml version="1.0" encoding="UTF-8"?>', ""))
+    const sha1Comprobante = sha1Base64(xml.replace('<?xml version="1.0"?>', "").trim())
 
     let signedInfo = ""
     signedInfo += '<ds:SignedInfo Id="Signature-SignedInfo' + signedInfoNumb + '">'
@@ -596,7 +596,7 @@ async function signXml2(p12Password, invoiceXml) {
 
     xadesBes += "</etsi:QualifyingProperties>";
     xadesBes += "</ds:Object>";
-    xadesBes += "\n</ds:Signature>\n";
+    xadesBes += "</ds:Signature>";
 
     /* ============================================= */
 
@@ -726,19 +726,6 @@ export async function POST(request) {
             ],
         }
 
-        await new Promise((resolve, reject) => {
-            // send mail
-            transporter.sendMail(mailData, (err, info) => {
-                if (err) {
-                    console.error(err);
-                    reject(err);
-                } else {
-                    console.log(info);
-                    resolve(info);
-                }
-            })
-        })
-
         await Sale.updateOne(
             { _id: id },
             {
@@ -747,7 +734,7 @@ export async function POST(request) {
                 },
             },
         )
-        console.log(authorizationResult.RespuestaAutorizacionComprobante.autorizaciones.autorizacion.mensajes.mensaje)
+        
 
         try {
             // Send the email
@@ -766,7 +753,7 @@ export async function POST(request) {
 
             return NextResponse.json(
                 {
-                    msg: 'Success'
+                    msg: authorizationResult
                 },
                 { status: 200 }
             )
