@@ -1,5 +1,6 @@
 import connectMongoDB from "@libs/mongodb"
 import Client from "@models/clientModel"
+import Inventory from "@models/inventoryModel"
 import Product from "@models/productModel"
 import Sale from "@models/saleModel"
 import moment from "@node_modules/moment-timezone"
@@ -29,7 +30,6 @@ export async function POST(request) {
 
         const startOfMonth = moment.tz(`${year}-${String(month + 1).padStart(2, '0')}-01`, "America/Guayaquil").startOf('month')
         const endOfMonth = moment.tz(`${year}-${String(month + 1).padStart(2, '0')}-01`, "America/Guayaquil").endOf('month')
-
 
         const sales = await Sale.find({
             updatedAt: {
@@ -84,62 +84,44 @@ export async function POST(request) {
             .slice(0, 3)
 
         /* ENTRADAS Y SALIDAS */
-        const productsAll = await Product.aggregate([
+
+        console.log(startOfMonth)
+
+        const entries = await Inventory.aggregate([
             {
                 $match: {
-                    'inventory.date': {
-                        $gte: startOfMonth.toDate(),
-                        $lte: endOfMonth.toDate()
-                    }
-                }
-            },
-            {
-                $unwind: "$inventory"
+                    method: "Entrada",
+                    createdAt: { $gte: startOfMonth.toDate(), $lt: endOfMonth.toDate() },
+                },
             },
             {
                 $group: {
-                    _id: {
-                        reason: "$inventory.reason",
-                        amount: "$inventory.amount",
-                        method: "$inventory.method",
-                        newStock: "$inventory.newStock",
-                        date: "$inventory.date",
-                        productId: "$_id"
-                    },
-                    uniqueInventory: { $first: "$inventory" }
-                }
+                    _id: null, // No grouping by a specific field; group all matching documents
+                    totalAmount: { $sum: "$amount" }, // Sum the 'amount' field
+                },
             },
-            {
-                $replaceRoot: { newRoot: "$uniqueInventory" }
-            },
-            {
-                $project: {
-                    reason: 1,
-                    amount: 1,
-                    method: 1,
-                    newStock: 1,
-                    date: 1,
-                    productId: "$_id.productId"
-                }
-            }
         ])
 
-        const products = productsAll.filter(item => {
-            const itemDate = moment(item.date, "YYYY-MM-DD");
-            return itemDate.isBetween(startOfMonth, endOfMonth, null, '[]');
-        })
+        const totalEntries = entries.length > 0 ? entries[0].totalAmount : 0;
 
-        let totalEntries = 0
-        let totalExits = 0
+        const exits = await Inventory.aggregate([
+            {
+                $match: {
+                    method: "Salida",
+                    createdAt: { $gte: startOfMonth.toDate(), $lt: endOfMonth.toDate() },
+                },
+            },
+            {
+                $group: {
+                    _id: null, 
+                    totalAmount: { $sum: { $abs: "$amount" } }, 
+                },
+            },
+        ])
 
-        products.forEach(product => {
-            if (product.method === "Entrada") {
-                totalEntries += Number(product.amount)
-            } else if (product.method === "Salida") {
-                totalExits += Math.abs(Number(product.amount))
-            }
-        })
-
+        const totalExits = exits.length > 0 ? exits[0].totalAmount : 0;
+        
+        
         /* TOTALES */
 
         const totalClients = await Client.countDocuments()

@@ -372,7 +372,7 @@ const Page = () => {
                     </p>
                   </div>
                 </div>
-                <div className="footer-inventory">
+                <div className="footer-inventory2">
                   <span>Entradas</span>
                   <span>Salidas</span>
                 </div>

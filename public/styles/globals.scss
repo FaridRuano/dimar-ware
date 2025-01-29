@@ -917,6 +917,16 @@ main {
     }
 }
 
+.footer-inventory2 {
+    display: flex;
+    color: $primary;
+    font-size: $small;
+    font-weight: 600;
+    justify-content: space-between;
+    width: 100%;
+    transition: .3s ease-out;
+}
+
 .footer-inventory {
     display: flex;
     color: $primary;
