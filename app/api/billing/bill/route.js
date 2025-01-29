@@ -399,7 +399,7 @@ async function signXml2(p12Password, invoiceXml) {
     keyInfo += "\n<ds:X509Data>"
     keyInfo += "\n<ds:X509Certificate>\n"
     keyInfo += certx509
-    keyInfo += "</ds:X509Certificate>"
+    keyInfo += "\n</ds:X509Certificate>"
     keyInfo += "\n</ds:X509Data>"
     keyInfo += "\n<ds:KeyValue>"
     keyInfo += "\n<ds:RSAKeyValue>"
@@ -489,6 +489,8 @@ async function signXml2(p12Password, invoiceXml) {
     )
 
     const sha1SignedProperties = sha1Base64(canonSignedProp)
+
+    /* KEYINFO CANONIZALIZATED */
 
     const canonKeyInfo = keyInfo.replace(
         "<ds:KeyInfo",
