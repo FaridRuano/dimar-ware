@@ -33,6 +33,19 @@ const transporter = nodemailer.createTransport({
     },
 })
 
+await new Promise((resolve, reject) => {
+    // verify connection configuration
+    transporter.verify(function (error, success) {
+        if (error) {
+            console.log(error);
+            reject(error);
+        } else {
+            console.log("Server is ready to take our messages");
+            resolve(success);
+        }
+    });
+});
+
 async function getP12S3() {
     const params = {
         Bucket: 'firma-electronica-bucket',
@@ -1284,7 +1297,7 @@ export async function POST(request) {
             process.env.SRI_AUTHORIZATION_URL
         )
 
-        const mailOptions = {
+        const mailData = {
             from: process.env.EMAIL_FROM,
             to: updatedSale.billData.email,
             subject: `Comprobante Electronico: ${invoice.factura.infoTributaria.claveAcceso}`,
@@ -1296,6 +1309,19 @@ export async function POST(request) {
                 },
             ],
         }
+
+        await new Promise((resolve, reject) => {
+            // send mail
+            transporter.sendMail(mailData, (err, info) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    console.log(info);
+                    resolve(info);
+                }
+            })
+        })
 
         await Sale.updateOne(
             { _id: id },
@@ -1309,11 +1335,22 @@ export async function POST(request) {
 
         try {
             // Send the email
-            const info = await transporter.sendMail(mailOptions)
+            await new Promise((resolve, reject) => {
+                // send mail
+                transporter.sendMail(mailData, (err, info) => {
+                    if (err) {
+                        console.error(err);
+                        reject(err);
+                    } else {
+                        console.log(info);
+                        resolve(info);
+                    }
+                })
+            })
 
             return NextResponse.json(
                 {
-                    msg: info
+                    msg: 'Success'
                 },
                 { status: 200 }
             )
