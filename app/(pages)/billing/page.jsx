@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import BtnView from '@public/assets/icons/btn-view.webp'
 import BtnDownload from '@public/assets/icons/btn-download.webp'
 import axios from '@node_modules/axios'
+import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 
 const Page = () => {
 
@@ -36,7 +37,10 @@ const Page = () => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await axios.get('/api/billing')
+      const token = localStorage.getItem('APSOQMEU')
+      const decoded = jwtDecode(token)
+      const user = decoded.name
+      const res = await axios.get(`/api/billing?user=${user}`)
       setTotalEmi(res.data.data.totalEmi)
       setSales(res.data.data.sales)
       setEmisions(res.data.data.emision)
@@ -92,10 +96,10 @@ const Page = () => {
                             sales.map((dat, i) => (
                               <tr className='table-05' key={i}>
                                 <td>
-                                  {dat.infoFactura.razonSocialComprador}
+                                  {dat.billData.name}
                                 </td>
                                 <td>
-                                  $<b>{dat.infoFactura.importeTotal}</b>
+                                  $<b>{dat.total}</b>
                                 </td>
                               </tr>
                             ))
@@ -131,7 +135,7 @@ const Page = () => {
                           emisions.map((dat, i) => (
                             <tr className='table-05' key={i}>
                               <td>
-                                {dat.infoFactura.razonSocialComprador}
+                                {dat.billData.name}
                               </td>
                               <td>
                                 <div className="btns-warp">

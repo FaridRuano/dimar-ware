@@ -373,6 +373,11 @@ main {
     }
 }
 
+.loading{
+    pointer-events: none;
+    animation: loopOpacity 1s infinite;
+}
+
 .options-container {
     display: flex;
     flex-direction: row;
@@ -389,9 +394,27 @@ main {
         text-align: start;
         color: $primary;
         font-size: $small;
-        cursor: pointer;
         transition: .2s ease-out;
-
+        &#iniDate{
+            position: relative;
+            &::before{
+                content: 'Desde';
+                position: absolute;
+                top: -15px;
+                left: 0;
+                font-size: 9px;
+            }
+        }
+        &#endDate{
+            position: relative;
+            &::before{
+                content: 'Hasta';
+                position: absolute;
+                top: -15px;
+                left: 0;
+                font-size: 9px;
+            }
+        }
         &.active {
             background-color: $primary;
             color: $white;
@@ -399,7 +422,6 @@ main {
 
         &:hover {
             background-color: rgba($primary, 0.5);
-            color: $white;
         }
     }
 
@@ -597,6 +619,7 @@ main {
                     }
                 }
             }
+            font-size: $small;
 
             &.table-01 {
 
@@ -897,8 +920,31 @@ main {
 .footer-inventory {
     display: flex;
     color: $primary;
-    font-size: $standar;
+    font-size: $small;
+    font-weight: 600;
     justify-content: space-between;
+    cursor: pointer;
+    width: fit-content;
+    transition: .3s ease-out;
+    position: relative;
+    &::after{
+        content: '';
+        width: 0;
+        height: 2px;
+        background-color: $primary;
+        position: absolute;
+        transition: .3s ease-out;
+        bottom: 0;
+    }
+    &:hover{
+        &::after{
+            width: 100%;
+        }
+    }
+    &.dis{
+        pointer-events: none;
+        opacity: .5;
+    }
 }
 
 .footer-end {
@@ -948,8 +994,6 @@ main {
         box-shadow: 0 0 20px rgba($primary, .2);
     }
 }
-
-.inner-btn {}
 
 .workspaces-warp {
     display: flex;
@@ -1562,7 +1606,6 @@ main {
     min-height: 900px;
     gap: 2rem;
     margin: auto;
-
     @media (max-width: 1500px) {
         width: 1000px;
     }
@@ -1703,14 +1746,17 @@ main {
 @keyframes loopOpacity {
     0% {
         opacity: .2;
+        filter: blur(15px);
     }
 
     50% {
         opacity: .6;
+        filter: blur(3px);
     }
 
     100% {
         opacity: .2;
+        filter: blur(15px);
     }
 }
 

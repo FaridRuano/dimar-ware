@@ -207,7 +207,9 @@ const billSchema= new Schema({
                 '#': { type: String },
             },
         ],
-    },
+    }
+},{
+    timestamps: true
 })
 
 const Bill = mongoose.models.Bill || mongoose.model('Bill', billSchema)

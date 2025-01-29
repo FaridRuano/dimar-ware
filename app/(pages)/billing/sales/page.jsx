@@ -40,7 +40,6 @@ const Page = () => {
 
   const fetchData = async (type = 1, page = 1, term = '') => {
     try {
-      setLoading(true)
       const res = await axios.get(`/api/billing/sales?type=${type}&page=${page}&term=${term}`)
       const data = (res.data)
       setData(data.data)
@@ -82,8 +81,8 @@ const Page = () => {
   /* Facture Row */
 
   const handleFacture = (id = null) => {
-    if(id !== null){
-      if(selRow.status === 'Pendiente'){
+    if (id !== null) {
+      if (selRow.status === 'Pendiente') {
         router.push(`/billing/sales/${selRow._id}`)
       }
     }
@@ -105,17 +104,98 @@ const Page = () => {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
     setCurrentPage(1)
     fetchData(1, 1, searchVal)
-    setLoading(false)
   }, [searchVal])
 
   useEffect(() => {
-    setLoading(true)
     fetchData(currentType, currentPage, '')
-    setLoading(false)
   }, [currentType, currentPage])
+
+  if (loading) {
+    return (
+      <>
+        <div className='pagename'>
+          <span>
+            Facturar
+          </span>
+        </div>
+        <div className="workspace loading">
+          <div className="container-row">
+            <div className={`container w1 hble ${currentType === 1 ? ('active') : ('')}`} onClick={() => setCurrentType(1)}>
+              <div className="row">
+                <div className="title-container">
+                  <span><b>Todas</b></span>
+                </div>
+                <div className="title-container">
+                  <span><b>0</b></span>
+                </div>
+              </div>
+            </div>
+            <div className={`container w1 secondary hble ${currentType === 2 ? ('active') : ('')}`} onClick={() => setCurrentType(2)}>
+              <div className="row">
+                <div className="title-container">
+                  <span><b>Pendientes</b></span>
+                </div>
+                <div className="title-container">
+                  <span><b>0</b></span>
+                </div>
+              </div>
+            </div>
+            <div className={`container w1 primary hble ${currentType === 3 ? ('active') : ('')}`} onClick={() => setCurrentType(3)}>
+              <div className="row">
+                <div className="title-container">
+                  <span><b>Por entregar</b></span>
+                </div>
+                <div className="title-container">
+                  <span><b>0</b></span>
+                </div>
+              </div>
+            </div>
+            <div className={`container w1 black hble ${currentType === 4 ? ('active') : ('')}`} onClick={() => setCurrentType(4)}>
+              <div className="row">
+                <div className="title-container">
+                  <span><b>Completas</b></span>
+                </div>
+                <div className="title-container">
+                  <span><b>0</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="row">
+            <div className="warp">
+            </div>
+            <div className={"warp"}>
+              <div className={`btn-base-div secondary ${selRow._id !== 0 && selRow.status === 'Pendiente' ? '' : 'dis'}`} onClick={() => handleFacture(selRow._id)}>
+                <div className="btn-icon">
+                  <Image src={Bill} width={'auto'} height={13} alt='Complete' />
+                </div>
+                <div className="btn-name">
+                  Facturar
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="container">
+            <div className="search-bar">
+              <div className="search-icon">
+                <Image src={Search} width={'auto'} height={20} alt='Search' />
+              </div>
+              <input type="text" placeholder='Buscar' value={searchVal} onChange={handleSearchVal} />
+              <div className={selRow._id === 0 ? "deselect-icon hide" : "deselect-icon"} onClick={() => setSelRow({ _id: 0 })}>
+                <Image src={Deselect} width={'auto'} height={20} alt='Search' />
+              </div>
+            </div>
+
+            <div className="title-container">
+              <span>No existen <b>datos que mostrar</b></span>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

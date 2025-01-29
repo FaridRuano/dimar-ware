@@ -1,4 +1,5 @@
 import connectMongoDB from "@libs/mongodb"
+import Inventory from "@models/inventoryModel"
 import Product from "@models/productModel"
 import Sale from "@models/saleModel"
 import { NextResponse } from "next/server"
@@ -23,8 +24,14 @@ export async function POST(request) {
 
             if (initDate !== '' && endDate !== '') {
 
-                const initDateObj = new Date(initDate)
-                const endDateObj = new Date(endDate)
+                let startDate, endedDate
+                startDate = new Date(initDate)
+                endedDate = new Date(endDate)
+
+                startDate.setUTCHours(0, 0, 0, 0)
+
+                endedDate.setUTCHours(23, 59, 59, 0)
+
                 let sales
                 let totalAmount
                 let sellers
@@ -34,7 +41,7 @@ export async function POST(request) {
                 lastMovements = await Sale.aggregate([
                     {
                         $match: {
-                            createdAt: { $gte: new Date(initDate), $lt: new Date(endDate) }
+                            createdAt: { $gte: startDate, $lt: endedDate }
                         }
                     },
                     { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
@@ -48,15 +55,17 @@ export async function POST(request) {
                         }
                     }
                 ])
-                sales = await Sale.countDocuments({ createdAt: { $gte: initDateObj, $lt: endDateObj } })
+
+                sales = await Sale.countDocuments({ createdAt: { $gte: startDate, $lt: endedDate } })
                 totalAmount = await Sale.aggregate([
-                    { $match: { createdAt: { $gte: initDateObj, $lt: endDateObj } } },
+                    { $match: { createdAt: { $gte: startDate, $lt: endedDate } } },
                     { $group: { _id: null, total: { $sum: "$total" } } },
                 ])
+
                 sellers = await Sale.aggregate([
                     {
                         $match: {
-                            createdAt: { $gte: initDateObj, $lt: endDateObj },
+                            createdAt: { $gte: startDate, $lt: endedDate },
                         },
                     },
                     {
@@ -84,6 +93,7 @@ export async function POST(request) {
                 data.val2 = totalAmount[0].total
                 data.xsData = sellers
                 data.data = lastMovements
+
             } else {
                 let sales
                 let totalAmount
@@ -124,13 +134,13 @@ export async function POST(request) {
                         endDate.setUTCHours(endDate.getUTCHours() - 5)
 
 
-
                         sales = await Sale.countDocuments({ createdAt: { $gte: startDate, $lt: endDate } })
 
                         totalAmount = await Sale.aggregate([
                             { $match: { createdAt: { $gte: startDate, $lt: endDate } } },
                             { $group: { _id: null, total: { $sum: "$total" } } },
                         ])
+
                         sellers = await Sale.aggregate([
                             {
                                 $match: {
@@ -158,27 +168,53 @@ export async function POST(request) {
                             },
                         ])
 
+                        lastMovements = await Sale.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startDate, $lt: endDate }, // Filtrar por el rango de tiempo seleccionado
+                                },
+                            },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$saler",
+                                    info: "$billData.name",
+                                    value: "$total"
+                                }
+                            }
+                        ])
+
                         break
 
                     case 2: // Ventas de esta semana
-                        const dayOfWeek = today.getDay(); // 0 (Domingo) a 6 (Sábado)
-                        const startOfWeek = new Date(today); // Copia de la fecha actual
-                        startOfWeek.setDate(today.getDate() - dayOfWeek); // Ajusta al primer día de la semana
-                        startOfWeek.setUTCHours(0, 0, 0, 0); // Establece la hora a las 00:00 en UTC
+                        const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
 
-                        const endOfWeek = new Date(startOfWeek); // Copia del inicio de la semana
-                        endOfWeek.setDate(startOfWeek.getDate() + 7); // Ajusta al primer día de la siguiente semana
-                        endOfWeek.setUTCHours(0, 0, 0, 0); // Establece la hora a las 00:00 en UTC
+                        // Calculate start of the week (Monday at 00:00:00 UTC)
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // Move to Monday
+                        startOfWeek.setUTCHours(0, 0, 0, 0); // Set time to 00:00:00 UTC
 
-                        // Resta 5 horas para ajustarlo al horario de Ecuador (UTC-5)
-                        startOfWeek.setUTCHours(startOfWeek.getUTCHours() - 5);
-                        endOfWeek.setUTCHours(endOfWeek.getUTCHours() - 5);
+                        // Calculate end of the week (Sunday at 23:59:59 UTC)
+                        const endOfWeek = new Date(startOfWeek);
+                        endOfWeek.setDate(startOfWeek.getDate() + 6); // Move to Sunday
+                        endOfWeek.setUTCHours(23, 59, 59, 999); // Set time to 23:59:59.999 UTC
 
-                        sales = await Sale.countDocuments({ createdAt: { $gte: startOfWeek, $lt: endOfWeek } });
+                        // Adjust for UTC-5 (Ecuador Timezone)
+                        const startOfWeekEcuador = new Date(startOfWeek)
+                        startOfWeekEcuador.setUTCHours(startOfWeekEcuador.getUTCHours() - 5)
+
+                        const endOfWeekEcuador = new Date(endOfWeek);
+                        endOfWeekEcuador.setUTCHours(endOfWeekEcuador.getUTCHours() - 5)
+
+                        sales = await Sale.countDocuments({ createdAt: { $gte: startOfWeek, $lt: endOfWeek } })
+
                         totalAmount = await Sale.aggregate([
                             { $match: { createdAt: { $gte: startOfWeek, $lt: endOfWeek } } }, // Filtro por rango de fechas
                             { $group: { _id: null, total: { $sum: "$total" } } }, // Agrupa y suma el campo total
                         ])
+
                         sellers = await Sale.aggregate([
                             {
                                 $match: {
@@ -375,72 +411,45 @@ export async function POST(request) {
 
                 data.xsData = sellers
                 data.data = lastMovements
-                console.log(lastMovements)
-
 
             }
 
         } else {
             if (initDate !== '' && endDate !== '') {
 
-                const initDateObj = new Date(initDate)
-                const endDateObj = new Date(endDate)
+                let startDate, endedDate
+                startDate = new Date(initDate)
+                endedDate = new Date(endDate)
+
+                startDate.setUTCHours(0, 0, 0, 0);
+
+                endedDate.setUTCHours(23, 59, 59, 0);
 
                 let exits = 0
                 let entries = 0
 
-                const products = await Product.find().select('inventory name user stock')
+                let lastMovements
 
-                const today = new Date()
-
-                today.setUTCHours(today.getUTCHours() - 5)
-
-                const latestEntriesExits = []
-
-                for (const product of products) {
-                    if (!product.inventory || product.inventory.length === 0) {
-                        console.log('Inventario vacío, se ignora este producto:', product.name || "Sin nombre");
-                        continue;
-                    }
-
-                    // Filtrar registros dentro del rango de fechas
-                    const todayRecords = product.inventory.filter(record => {
-                        if (!record.date) return false; // Ignorar registros sin fecha
-                        const recordDate = new Date(record.date);
-                        return recordDate >= initDateObj && recordDate <= endDateObj; // Rango de fechas
-                    });
-
-                    // Contar entradas y salidas
-                    entries += todayRecords.filter(record => record.method === 'Entrada').length;
-                    exits += todayRecords.filter(record => record.method === 'Salida').length;
-
-                    // Ordenar y tomar los 15 registros más recientes
-                    const recentRecords = todayRecords
-                        .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
-                        .slice(0, 15)
-
-                    // Agregar registros recientes a `latestEntriesExits`
-                    recentRecords.forEach(record => {
-                        if (record.date && record.amount !== undefined && record.method) {
-                            latestEntriesExits.push({
-                                user: product.name || "Unknown", // Nombre del producto
-                                value: record.amount, // Cantidad del registro
-                                info: record.method, // Método (Entrada/Salida)
-                                date: record.date, // Fecha del registro
-                            });
-                        } else {
-                            console.warn("Registro inválido encontrado:", record);
+                lastMovements = await Inventory.aggregate([
+                    {
+                        $match: {
+                            createdAt: { $gte: startDate, $lt: endedDate }
                         }
-                    });
-                }
-
-                latestEntriesExits.sort((a, b) => new Date(b.date) - new Date(a.date))
+                    },
+                    { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                    { $limit: 15 }, // Limitar a las últimas 15 ventas
+                    {
+                        $project: {
+                            _id: 1,
+                            user: "$user",
+                            info: "$name",
+                            value: "$amount"
+                        }
+                    }
+                ])
 
                 const sales = await Sale.find({
-                    createdAt: {
-                        $gte: initDateObj,
-                        $lte: endDateObj,
-                    },
+                    createdAt: { $gte: startDate, $lt: endedDate },
                     status: 'Completa',
                 }).select('total cart saler createdAt')
 
@@ -466,12 +475,16 @@ export async function POST(request) {
                     })
                 })
 
+                exits = await Inventory.countDocuments({ method: 'Salida', createdAt: { $gte: startDate, $lt: endedDate } })
+                entries = await Inventory.countDocuments({ method: 'Entrada', createdAt: { $gte: startDate, $lt: endedDate } })
+
                 const sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
 
                 const top5Products = sortedProducts.slice(0, 4)
+
                 data.val1 = exits
                 data.val2 = entries
-                data.data = latestEntriesExits.slice(0,15)
+                data.data = lastMovements
                 data.xsData = top5Products
 
 
@@ -481,8 +494,7 @@ export async function POST(request) {
 
                 let sales
                 let sortedProducts
-
-                const products = await Product.find().select('inventory name user stock')
+                let lastMovements
 
                 const today = new Date()
 
@@ -491,53 +503,34 @@ export async function POST(request) {
                 let startDate, endDate
 
                 let top5Products
-                const latestEntriesExits = []
+                let latestEntriesExits
                 const productSalesCount = []
 
                 switch (type) {
                     case 1:
                         startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-                        startDate.setUTCHours(startDate.getUTCHours() - 5)
+                        startDate.setUTCHours(0, 0, 0, 0)
 
                         endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-                        endDate.setUTCHours(endDate.getUTCHours() - 5)
+                        endDate.setUTCHours(23, 59, 59, 0)
 
-                        for (const product of products) {
-
-                            if (!product.inventory || product.inventory.length === 0) {
-                                console.log('Inventario vacío, se ignora este producto');
-                            }
-                            // Filtrar los registros dentro del rango de fechas
-                            const filteredRecords = product.inventory.filter(record => {
-                                if (!record.date) return false; // Ignorar registros sin fecha
-                                const recordDate = new Date(record.date);
-                                return recordDate >= startDate && recordDate < endDate; // Dentro del rango
-                            });
-
-                            // Contar entradas y salidas de los registros filtrados
-                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
-                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
-
-                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
-                            const recentRecords = filteredRecords
-                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
-                                .slice(0, 15); // Tomar los 15 registros más recientes
-
-                            // Agregar registros procesados a latestEntriesExits
-                            recentRecords.forEach(record => {
-                                if (record.date && record.amount !== undefined && record.method) {
-                                    latestEntriesExits.push({
-                                        user: product.name || "Unknown", // Nombre del producto
-                                        value: record.amount, // Cantidad del registro
-                                        info: record.method, // Método (Entrada/Salida)
-                                        date: record.date, // Fecha del registro
-                                    });
-                                } else {
-                                    console.warn("Registro inválido encontrado:", record);
+                        lastMovements = await Inventory.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startDate, $lt: endDate }
                                 }
-                            })
-                        }
-
+                            },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$user",
+                                    info: "$name",
+                                    value: "$amount"
+                                }
+                            }
+                        ])
 
                         sales = await Sale.find({
                             createdAt: {
@@ -568,63 +561,47 @@ export async function POST(request) {
                             })
                         })
 
+                        exits = await Inventory.countDocuments({ method: 'Salida', createdAt: { $gte: startDate, $lt: endDate } })
+                        entries = await Inventory.countDocuments({ method: 'Entrada', createdAt: { $gte: startDate, $lt: endDate } })
+
                         sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
                         top5Products = sortedProducts.slice(0, 4)
-
+                        latestEntriesExits = lastMovements
                         break
 
                     case 2: // Ventas de esta semana
-                        const dayOfWeek = today.getDay(); // 0 (Domingo) a 6 (Sábado)
-                        const startOfWeek = new Date(today); // Copia de la fecha actual
-                        startOfWeek.setDate(today.getDate() - dayOfWeek); // Ajusta al primer día de la semana
-                        startOfWeek.setUTCHours(0, 0, 0, 0); // Establece la hora a las 00:00 en UTC
+                        const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
 
-                        const endOfWeek = new Date(startOfWeek); // Copia del inicio de la semana
-                        endOfWeek.setDate(startOfWeek.getDate() + 7); // Ajusta al primer día de la siguiente semana
-                        endOfWeek.setUTCHours(0, 0, 0, 0); // Establece la hora a las 00:00 en UTC
+                        // Calculate start of the week (Monday at 00:00:00 UTC)
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // Move to Monday
+                        startOfWeek.setUTCHours(0, 0, 0, 0); // Set time to 00:00:00 UTC
 
-                        // Resta 5 horas para ajustarlo al horario de Ecuador (UTC-5)
-                        startOfWeek.setUTCHours(startOfWeek.getUTCHours() - 5);
-                        endOfWeek.setUTCHours(endOfWeek.getUTCHours() - 5);
+                        // Calculate end of the week (Sunday at 23:59:59 UTC)
+                        const endOfWeek = new Date(startOfWeek);
+                        endOfWeek.setDate(startOfWeek.getDate() + 6); // Move to Sunday
+                        endOfWeek.setUTCHours(23, 59, 59, 999); // Set time to 23:59:59.999 UTC
 
-                        for (const product of products) {
-                            if (!product.inventory || product.inventory.length === 0) {
-                                console.log('Inventario vacío, se ignora este producto');
-                            } // Filtrar los registros dentro del rango de fechas
-                            const filteredRecords = product.inventory.filter(record => {
-                                if (!record.date) return false; // Ignorar registros sin fecha
-                                const recordDate = new Date(record.date);
-                                return recordDate >= startOfWeek && recordDate < endOfWeek; // Dentro del rango
-                            });
-
-                            // Contar entradas y salidas de los registros filtrados
-                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
-                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
-
-                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
-                            const recentRecords = filteredRecords
-                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
-                                .slice(0, 15); // Tomar los 15 registros más recientes
-
-                            // Agregar registros procesados a latestEntriesExits
-                            recentRecords.forEach(record => {
-                                if (record.date && record.amount !== undefined && record.method) {
-                                    latestEntriesExits.push({
-                                        user: product.name || "Unknown", // Nombre del producto
-                                        value: record.amount, // Cantidad del registro
-                                        info: record.method, // Método (Entrada/Salida)
-                                        date: record.date, // Fecha del registro
-                                    });
-                                } else {
-                                    console.warn("Registro inválido encontrado:", record);
+                        lastMovements = await Inventory.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startOfWeek, $lt: endOfWeek }
                                 }
-                            });
-                        }
-                        sales = await Sale.find({
-                            createdAt: {
-                                $gte: startOfWeek,
-                                $lte: endOfWeek,
                             },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$user",
+                                    info: "$name",
+                                    value: "$amount"
+                                }
+                            }
+                        ])
+
+                        sales = await Sale.find({
+                            createdAt: { $gte: startOfWeek, $lt: endOfWeek },
                             status: 'Completa',
                         }).select('total cart saler createdAt')
 
@@ -649,57 +626,40 @@ export async function POST(request) {
                             })
                         })
 
-                        sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
+                        exits = await Inventory.countDocuments({ method: 'Salida', createdAt: { $gte: startOfWeek, $lt: endOfWeek } })
+                        entries = await Inventory.countDocuments({ method: 'Entrada', createdAt: { $gte: startOfWeek, $lt: endOfWeek } })
 
+                        sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
                         top5Products = sortedProducts.slice(0, 4)
+                        latestEntriesExits = lastMovements
                         break
 
                     case 3: // Ventas de este mes
                         startDate = new Date(today.getFullYear(), today.getMonth(), 1) // Inicio del mes
-                        startDate.setUTCHours(startDate.getUTCHours() - 5)
+                        startDate.setUTCHours(0, 0, 0, 0)
 
                         endDate = new Date(today.getFullYear(), today.getMonth() + 1, 1) // Inicio del próximo mes
-                        endDate.setUTCHours(endDate.getUTCHours() - 5)
+                        endDate.setUTCHours(23, 59, 59, 0)
 
-                        for (const product of products) {
-                            if (!product.inventory || product.inventory.length === 0) {
-                                console.log('Inventario vacío, se ignora este producto');
-                            }
-                            // Filtrar los registros dentro del rango de fechas
-                            const filteredRecords = product.inventory.filter(record => {
-                                if (!record.date) return false; // Ignorar registros sin fecha
-                                const recordDate = new Date(record.date);
-                                return recordDate >= startDate && recordDate < endDate; // Dentro del rango
-                            });
-
-                            // Contar entradas y salidas de los registros filtrados
-                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
-                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
-
-                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
-                            const recentRecords = filteredRecords
-                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
-                                .slice(0, 15); // Tomar los 15 registros más recientes
-
-                            // Agregar registros procesados a latestEntriesExits
-                            recentRecords.forEach(record => {
-                                if (record.date && record.amount !== undefined && record.method) {
-                                    latestEntriesExits.push({
-                                        user: product.name || "Unknown", // Nombre del producto
-                                        value: record.amount, // Cantidad del registro
-                                        info: record.method, // Método (Entrada/Salida)
-                                        date: record.date, // Fecha del registro
-                                    });
-                                } else {
-                                    console.warn("Registro inválido encontrado:", record);
+                        lastMovements = await Inventory.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startDate, $lt: endDate }
                                 }
-                            })
-                        }
-                        sales = await Sale.find({
-                            createdAt: {
-                                $gte: startDate,
-                                $lte: endDate,
                             },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$user",
+                                    info: "$name",
+                                    value: "$amount"
+                                }
+                            }
+                        ])
+                        sales = await Sale.find({
+                            createdAt: { $gte: startDate, $lt: endDate },
                             status: 'Completa',
                         }).select('total cart saler createdAt')
 
@@ -724,9 +684,12 @@ export async function POST(request) {
                             })
                         })
 
-                        sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
+                        exits = await Inventory.countDocuments({ method: 'Salida', createdAt: { $gte: startDate, $lt: endDate } })
+                        entries = await Inventory.countDocuments({ method: 'Entrada', createdAt: { $gte: startDate, $lt: endDate } })
 
+                        sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
                         top5Products = sortedProducts.slice(0, 4)
+                        latestEntriesExits = lastMovements
                         break
 
                     case 4: // Ventas de este año
@@ -736,45 +699,25 @@ export async function POST(request) {
                         endDate = new Date(today.getFullYear() + 1, 0, 1) // Inicio del próximo año
                         endDate.setUTCHours(endDate.getUTCHours() - 5)
 
-                        for (const product of products) {
-                            if (!product.inventory || product.inventory.length === 0) {
-                                console.log('Inventario vacío, se ignora este producto');
-                            }
-                            // Filtrar los registros dentro del rango de fechas
-                            const filteredRecords = product.inventory.filter(record => {
-                                if (!record.date) return false; // Ignorar registros sin fecha
-                                const recordDate = new Date(record.date);
-                                return recordDate >= startDate && recordDate < endDate; // Dentro del rango
-                            });
-
-                            // Contar entradas y salidas de los registros filtrados
-                            entries += filteredRecords.filter(record => record.method === 'Entrada').length;
-                            exits += filteredRecords.filter(record => record.method === 'Salida').length;
-
-                            // Ordenar por fecha descendente y tomar los 15 registros más recientes dentro del rango
-                            const recentRecords = filteredRecords
-                                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por fecha descendente
-                                .slice(0, 15); // Tomar los 15 registros más recientes
-
-                            // Agregar registros procesados a latestEntriesExits
-                            recentRecords.forEach(record => {
-                                if (record.date && record.amount !== undefined && record.method) {
-                                    latestEntriesExits.push({
-                                        user: product.name || "Unknown", // Nombre del producto
-                                        value: record.amount, // Cantidad del registro
-                                        info: record.method, // Método (Entrada/Salida)
-                                        date: record.date, // Fecha del registro
-                                    });
-                                } else {
-                                    console.warn("Registro inválido encontrado:", record);
+                        lastMovements = await Inventory.aggregate([
+                            {
+                                $match: {
+                                    createdAt: { $gte: startDate, $lt: endDate }
                                 }
-                            })
-                        }
-                        sales = await Sale.find({
-                            createdAt: {
-                                $gte: startDate,
-                                $lte: endDate,
                             },
+                            { $sort: { createdAt: -1 } }, // Ordenar por fecha de creación, descendente
+                            { $limit: 15 }, // Limitar a las últimas 15 ventas
+                            {
+                                $project: {
+                                    _id: 1,
+                                    user: "$user",
+                                    info: "$name",
+                                    value: "$amount"
+                                }
+                            }
+                        ])
+                        sales = await Sale.find({
+                            createdAt: { $gte: startDate, $lt: endDate },
                             status: 'Completa',
                         }).select('total cart saler createdAt')
 
@@ -799,21 +742,23 @@ export async function POST(request) {
                             })
                         })
 
-                        sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
+                        exits = await Inventory.countDocuments({ method: 'Salida', createdAt: { $gte: startDate, $lt: endDate } })
+                        entries = await Inventory.countDocuments({ method: 'Entrada', createdAt: { $gte: startDate, $lt: endDate } })
 
+                        sortedProducts = productSalesCount.sort((a, b) => b.quantity - a.quantity)
                         top5Products = sortedProducts.slice(0, 4)
+                        latestEntriesExits = lastMovements
                         break
 
                     default: // Caso por defecto (sin filtro)
                         break
                 }
 
-                latestEntriesExits.sort((a, b) => new Date(b.date) - new Date(a.date))
-
                 data.val1 = exits
                 data.val2 = entries
                 data.data = latestEntriesExits
                 data.xsData = top5Products
+
             }
         }
 

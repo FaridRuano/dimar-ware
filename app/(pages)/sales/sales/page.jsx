@@ -11,14 +11,54 @@ import Start from '@public/assets/icons/dt-start.webp'
 import Previous from '@public/assets/icons/dt-previous.webp'
 import Deselect from '@public/assets/icons/btn-deselect.webp'
 import Trash from '@public/assets/icons/btn-trash.webp'
-
-
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import NewClientModal from '@public/components/modals/NewClientModal'
 import axios from 'axios'
 import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 import ConfirmModal from '@public/components/modals/ConfirmModal'
+
+const mongoClientData = async (type, page, term, user, signal) => {
+  try {
+    const uri = process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(`${uri}/api/sales/sales?type=${type}&page=${page}&term=${term}&user=${user}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      signal: signal
+    })
+
+    if (!res.ok) {
+      throw new Error("Failed")
+    }
+    const ponse = await res.json()
+    return {
+      data: ponse.data,
+      currentPage: ponse.currentPage,
+      totalPages: ponse.totalPages,
+      totalSales: ponse.totalSales,
+      totalSalesPending: ponse.totalSalesPending,
+      totalSalesToDeliver: ponse.totalSalesToDeliver,
+      totalSalesComplete: ponse.totalSalesComplete
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      /* console.log('Fetch aborted'); */
+    } else {
+      console.error('Fetch error:', error);
+    }
+    return {
+      data: null,
+      currentPage: 1,
+      totalPages: 1,
+      totalSales: 0,
+      totalSalesPending: 0,
+      totalSalesToDeliver: 0,
+      totalSalesComplete: 0
+    }
+  }
+}
 
 const Page = () => {
 
@@ -47,21 +87,22 @@ const Page = () => {
   const [totalData4, setTotalData4] = useState(0)
 
 
-  const fetchData = async (type = 1, page = 1, term = '') => {
+  const fetchData = async (type = 1, page = 1, term = '', signal = undefined) => {
     try {
-      setLoading(true)
       const token = localStorage.getItem('APSOQMEU')
       const decoded = jwtDecode(token)
       const user = decoded.name
-      const res = await axios.get(`/api/sales/sales?type=${type}&page=${page}&term=${term}&user=${user}`)
-      const data = (res.data)
-      setData(data.data)
-      setCurrentPage(data.currentPage)
-      setTotalPages(data.totalPages)
-      setTotalData(data.totalSales)
-      setTotalData2(data.totalSalesPending)
-      setTotalData3(data.totalSalesToDeliver)
-      setTotalData4(data.totalSalesComplete)
+      const { data, currentPage, totalPages, totalSales, totalSalesPending, totalSalesToDeliver, totalSalesComplete } = await mongoClientData(type, page, term, user, signal)
+      if (data === null) {
+        return
+      }
+      setData(data)
+      setCurrentPage(currentPage)
+      setTotalPages(totalPages)
+      setTotalData(totalSales)
+      setTotalData2(totalSalesPending)
+      setTotalData3(totalSalesToDeliver)
+      setTotalData4(totalSalesComplete)
     } catch (e) {
       console.log('Something went wrong:', e)
     } finally {
@@ -70,18 +111,24 @@ const Page = () => {
   }
 
   const handleNextPage = () => {
-    setCurrentPage(prevPage => prevPage + 1)
+    setSelRow({ _id: 0 })
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
   }
 
   const handlePrevPage = () => {
+    setSelRow({ _id: 0 })
     setCurrentPage(prevPage => (prevPage > 1 ? prevPage - 1 : prevPage))
   }
 
   const handleFirstPage = () => {
+    setSelRow({ _id: 0 })
     setCurrentPage(1);
   }
 
   const handleLastPage = () => {
+    setSelRow({ _id: 0 })
     setCurrentPage(totalPages)
   }
 
@@ -104,14 +151,18 @@ const Page = () => {
 
   const handleComplete = async () => {
     setLoading(true)
+    const token = localStorage.getItem('APSOQMEU')
+    const decoded = jwtDecode(token)
+    const user = decoded.name
     const dataObject = {
-      id: selRow._id
+      id: selRow._id,
+      user: user
     }
-    try{
+    try {
       const res = await axios.put('/api/sales/sales', dataObject)
       fetchData(currentType, currentPage, searchVal)
-      setSelPro({_id: 0})
-    }catch(e){
+      setSelPro({ _id: 0 })
+    } catch (e) {
       console.log(e)
     }
     setLoading(false)
@@ -437,16 +488,16 @@ const Page = () => {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
+    const controller = new AbortController()
     setCurrentPage(1)
-    fetchData(1, 1, searchVal)
-    setLoading(false)
+    fetchData(1, 1, searchVal, controller.signal)
+    return () => controller.abort()
   }, [searchVal])
 
   useEffect(() => {
-    setLoading(true)
-    fetchData(currentType, currentPage, '')
-    setLoading(false)
+    const controller = new AbortController()
+    fetchData(currentType, currentPage, searchVal, controller.signal)
+    return () => controller.abort()
   }, [currentType, currentPage])
 
   return (
@@ -458,7 +509,7 @@ const Page = () => {
           Ventas
         </span>
       </div>
-      <div className="workspace">
+      <div className={`workspace ${loading ? 'loading' : ''}`}>
         {
           isAdd ? (
             <div className="container">

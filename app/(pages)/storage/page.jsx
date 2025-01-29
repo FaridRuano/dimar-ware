@@ -4,6 +4,7 @@ import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import DtUser from '@public/assets/icons/sidebar-users.webp'
 import axios from 'axios'
+import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 
 const Page = () => {
 
@@ -20,14 +21,16 @@ const Page = () => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await axios.get('/api/storage')
+      const token = localStorage.getItem('APSOQMEU')
+      const decoded = jwtDecode(token)
+      const user = decoded.name
+      const res = await axios.get(`/api/storage?user=${user}`)
       const data = res.data
       setTotalStock(data.totalInventory)
       setEntries(data.entriesToday)
       setExits(data.exitsToday)
       setLowStockData(data.lowStockProducts)
-      setDataMoves(data.latestEntriesExits.slice(0,15))
-      console.log(data.latestEntriesExits.length)
+      setDataMoves(data.data)
     } catch (e) {
       console.log(e)
     }
@@ -38,65 +41,180 @@ const Page = () => {
     fetchData()
   }, [])
 
-  return (
-    <>
-      <div className='pagename'>
-        <span>
-          Inicio
-        </span>
-      </div>
-      <div className="workspace">
-        <div className="container-row">
-          <div className="container-col w2">
-            <div className="container">
-              <div className="title-container">
-                <span>Bienvenido a <b>Bodega</b></span>
-              </div>
-            </div>
-            <div className="container primary">
-              <div className="title-container">
-                <span><b>Inventario</b></span>
-              </div>
-              <div className="footer-container">
-                <span><b>{totalStock}</b></span>
-              </div>
-            </div>
-            <div className="container-row">
-              <div className="container w2 secondary">
+  if (loading) {
+    return (
+      <>
+        <div className='pagename'>
+          <span>
+            Inicio
+          </span>
+        </div>
+        <div className="workspace loading">
+          <div className="container-row">
+            <div className="container-col w2">
+              <div className="container">
                 <div className="title-container">
-                  <span>Entradas de <b>hoy</b></span>
+                  <span>Bienvenido a <b>Bodega</b></span>
+                </div>
+              </div>
+              <div className="container primary">
+                <div className="title-container">
+                  <span><b>Inventario</b></span>
                 </div>
                 <div className="footer-container">
-                  <span><b>{entries}</b></span>
+                  <span><b>0</b></span>
                 </div>
               </div>
-              <div className="container w2 third">
-                <div className="title-container">
-                  <span>Salidas de <b>hoy</b></span>
+              <div className="container-row">
+                <div className="container w2 secondary">
+                  <div className="title-container">
+                    <span>Entradas de <b>hoy</b></span>
+                  </div>
+                  <div className="footer-container">
+                    <span><b>0</b></span>
+                  </div>
                 </div>
-                <div className="footer-container">
-                  <span><b>{exists}</b></span>
+                <div className="container w2 third">
+                  <div className="title-container">
+                    <span>Salidas de <b>hoy</b></span>
+                  </div>
+                  <div className="footer-container">
+                    <span><b>0</b></span>
+                  </div>
+                </div>
+              </div>
+              <div className="container">
+                <div className="title-container">
+                  <span>Productos con stock <b>bajo</b></span>
+                </div>
+
+                <div className="title-container">
+                  <span>No existen <b>datos que mostrar.</b></span>
                 </div>
               </div>
             </div>
-            <div className="container">
+            <div className="container w3">
               <div className="title-container">
-                <span>Productos con stock <b>bajo</b></span>
+                <span>Últimos <b>movimientos</b></span>
+              </div>
+              <div className="title-container">
+                <span>No existen <b>datos que mostrar.</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  } else {
+    return (
+      <>
+        <div className='pagename'>
+          <span>
+            Inicio
+          </span>
+        </div>
+        <div className="workspace">
+          <div className="container-row">
+            <div className="container-col w2">
+              <div className="container">
+                <div className="title-container">
+                  <span>Bienvenido a <b>Bodega</b></span>
+                </div>
+              </div>
+              <div className="container primary">
+                <div className="title-container">
+                  <span><b>Inventario</b></span>
+                </div>
+                <div className="footer-container">
+                  <span><b>{totalStock}</b></span>
+                </div>
+              </div>
+              <div className="container-row">
+                <div className="container w2 secondary">
+                  <div className="title-container">
+                    <span>Entradas de <b>hoy</b></span>
+                  </div>
+                  <div className="footer-container">
+                    <span><b>{entries}</b></span>
+                  </div>
+                </div>
+                <div className="container w2 third">
+                  <div className="title-container">
+                    <span>Salidas de <b>hoy</b></span>
+                  </div>
+                  <div className="footer-container">
+                    <span><b>{exists}</b></span>
+                  </div>
+                </div>
+              </div>
+              <div className="container">
+                <div className="title-container">
+                  <span>Productos con stock <b>bajo</b></span>
+                </div>
+                {
+                  lowStockData.length > 0 ? (
+                    <>
+                      <div className="datatable-container">
+                        <table>
+                          <tbody>
+                            {
+                              lowStockData.map((data, i) => (
+                                <tr className='table-05' key={i}>
+                                  <td>
+                                    {data.name}
+                                  </td>
+                                  <td>
+                                    <b>{data.stock}</b>
+                                  </td>
+                                </tr>
+                              ))
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="footer-a-end">
+                        <div className="btn-base black">
+                          <button>Ver Todos</button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="title-container">
+                      <span>No existen <b>datos que mostrar.</b></span>
+                    </div>
+                  )
+                }
+              </div>
+            </div>
+            <div className="container w3">
+              <div className="title-container">
+                <span>Últimos <b>movimientos</b></span>
               </div>
               {
-                lowStockData.length > 0 ? (
+                dataMoves.length > 0 ? (
                   <>
                     <div className="datatable-container">
                       <table>
                         <tbody>
                           {
-                            lowStockData.map((data, i) => (
+                            dataMoves.map((data, i) => (
                               <tr className='table-05' key={i}>
                                 <td>
                                   {data.name}
                                 </td>
                                 <td>
-                                  <b>{data.stock}</b>
+                                  {
+                                    data.method === 'Entrada' ? (
+                                      <div className="money">
+                                        +<b>{data.amount}</b>
+                                      </div>
+                                    ) : (
+                                      <div className="money negative">
+                                        <b>{data.amount}</b>
+                                      </div>
+                                    )
+                                  }
+
                                 </td>
                               </tr>
                             ))
@@ -116,62 +234,14 @@ const Page = () => {
                   </div>
                 )
               }
-            </div>
-          </div>
-          <div className="container w3">
-            <div className="title-container">
-              <span>Últimos <b>movimientos</b></span>
-            </div>
-            {
-              dataMoves.length > 0 ? (
-                <>
-                  <div className="datatable-container">
-                    <table>
-                      <tbody>
-                        {
-                          dataMoves.map((data, i) => (
-                            <tr className='table-05' key={i}>
-                              <td>
-                                {data.name}
-                              </td>
-                              <td>
-                                {
-                                  data.method === 'Entrada' ? (
-                                    <div className="money">
-                                      +<b>{data.amount}</b>
-                                    </div>
-                                  ) : (
-                                    <div className="money negative">
-                                      <b>{data.amount}</b>
-                                    </div>
-                                  )
-                                }
 
-                              </td>
-                            </tr>
-                          ))
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="footer-a-end">
-                    <div className="btn-base black">
-                      <button>Ver Todos</button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="title-container">
-                  <span>No existen <b>datos que mostrar.</b></span>
-                </div>
-              )
-            }
-
+            </div>
           </div>
         </div>
-      </div>
-    </>
-  )
+      </>
+    )
+  }
+
 }
 
 export default Page

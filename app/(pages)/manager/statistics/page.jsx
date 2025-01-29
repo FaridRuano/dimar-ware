@@ -82,12 +82,25 @@ const Page = () => {
       console.log(e)
     }
     setLoading(false)
+  }
 
+  const resetDates = () => {
+    setInitDate('')
+    setEndDate('')
+    handleTypeDates(1)
   }
 
   useEffect(() => {
     fetchData()
-  }, [globalFilter, typeDate, initDate, endDate])
+  }, [globalFilter, typeDate])
+
+  useEffect(()=>{
+    if(endDate === '' || initDate === ''){
+      return
+    }else{
+      fetchData()
+    }
+  },[initDate, endDate])
 
   if (loading) {
     return (
@@ -97,7 +110,7 @@ const Page = () => {
             Estadísticas
           </span>
         </div>
-        <div className="workspace">
+        <div className="workspace loading">
           <div className="container-row">
             <div className="container-col w2">
               <div className="container">
@@ -122,19 +135,16 @@ const Page = () => {
                   </p>
                 </div>
                 <div className="options-container l2 dates">
-                  <div className='option'>
+                  <div className='option' id='iniDate'>
                     <input type="date" value={initDate} name='init' onChange={handleRangeDates} />
                   </div>
-                  <div className='option'>
+                  <div className='option' id='endDate'>
                     <input type="date" value={endDate} name='end' onChange={handleRangeDates} />
                   </div>
                 </div>
                 <div className="footer-inventory">
                   <span>
-                    desde
-                  </span>
-                  <span>
-                    hasta
+                    Borrar selección
                   </span>
                 </div>
               </div>
@@ -153,7 +163,7 @@ const Page = () => {
                     <span>Total {globalFilter ? 'Entradas' : 'Ingresos'}</span>
                   </div>
                   <div className="footer-container">
-                    <span><b>0</b></span>
+                    <span><b>{globalFilter ? '0' : '$0.00'}</b></span>
                   </div>
                 </div>
               </div>
@@ -179,7 +189,6 @@ const Page = () => {
       </>
     )
   }
-
   return (
     <>
       <div className='pagename'>
@@ -212,19 +221,16 @@ const Page = () => {
                 </p>
               </div>
               <div className="options-container l2 dates">
-                <div className='option'>
+                <div className='option' id='iniDate'>
                   <input type="date" value={initDate} name='init' onChange={handleRangeDates} />
                 </div>
-                <div className='option'>
+                <div className='option' id='endDate'>
                   <input type="date" value={endDate} name='end' onChange={handleRangeDates} />
                 </div>
               </div>
-              <div className="footer-inventory">
+              <div className={`footer-inventory ${typeDate === 5 ? '': 'dis'}`} onClick={()=>resetDates()}>
                 <span>
-                  desde
-                </span>
-                <span>
-                  hasta
+                  Borrar selección
                 </span>
               </div>
             </div>
@@ -245,9 +251,9 @@ const Page = () => {
                 <div className="footer-container">
                   {
                     globalFilter ? (
-                      <span><b>{val2.toFixed(2)}</b></span>
+                      <span><b>{val2}</b></span>
                     ) : (
-                      <span>$<b>{val2.toFixed(2)}</b></span>
+                      <span><b>${val2.toFixed(2)}</b></span>
                     )
                   }
                 </div>
@@ -280,7 +286,7 @@ const Page = () => {
                                     {
                                       globalFilter ? (
                                         <>
-                                          <b>{dat.quantity ? dat.quantity.toFixed(2) : 0}</b>u
+                                          <b>{dat.quantity ? dat.quantity : 0}</b>u
                                         </>
                                       ) : (
                                         <>
@@ -337,7 +343,7 @@ const Page = () => {
                                 {dat.info}
                               </td>
                               <td>
-                                <div className={`money ${dat.info === 'Salida' ? 'negative' : ''}`}>
+                                <div className={`money ${dat.value < 0 ? 'negative' : ''}`}>
                                   {
                                     globalFilter ? (
                                       <>

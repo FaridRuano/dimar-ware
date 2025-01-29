@@ -10,7 +10,7 @@ export async function POST(request) {
 
         await connectMongoDB()
 
-        const user = await User.findOne({ email }).select('+password')
+        const user = await User.findOne({ email, status: true }).select('+password')
 
         if (!user) {
             return NextResponse.json(

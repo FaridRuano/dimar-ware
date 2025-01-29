@@ -35,24 +35,22 @@ const transporter = nodemailer.createTransport({
 
 async function getP12S3() {
     const params = {
-        Bucket: 'firma-electronica-bucket', // Cambia esto por el nombre de tu bucket
+        Bucket: 'firma-electronica-bucket',
         Key: 'firma.p12',
     }
 
     try {
-        const res = await s3.getObject(params).promise() // Usamos `promise()` para esperar la respuesta
+        const res = await s3.getObject(params).promise()
 
         if (!res.Body) {
             throw new Error("No se encontró el archivo.")
         }
 
-        // Convertir a una cadena binaria
-        const binaryP12 = res.Body.toString('binary');
+        const binaryP12 = res.Body.toString('binary')
 
-        // Convertir a ASN.1 para usar con forge
-        const p12Asn1 = forge.asn1.fromDer(binaryP12);
+        const p12Asn1 = forge.asn1.fromDer(binaryP12)
 
-        return p12Asn1;
+        return p12Asn1
     } catch (error) {
         console.error("Error al obtener el archivo desde S3:", error)
         throw error
@@ -292,66 +290,6 @@ function bigIntToBase64(bigInt) {
 
 function getRandomNumber(min = 100000, max = 999999) {
     return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-function calculateDigestValue(xmlContent, isSignedProps = false) {
-    // Aplicar transformaciones si es necesario
-    if (!isSignedProps) {
-        // Transformación "enveloped-signature" (eliminar la firma de dentro del contenido XML)
-        const signedTag = /<ds:Signature[^>]*>.*<\/ds:Signature>/s;
-        xmlContent = xmlContent.replace(signedTag, '');  // Eliminar cualquier <ds:Signature>
-    }
-
-    // Usar SHA-256 para calcular el Digest
-    const md = forge.md.sha256.create();
-    md.update(xmlContent, 'utf8');  // Asumimos que el XML está en formato UTF-8
-    const digest = md.digest();
-
-    // Codificar el resultado del hash en Base64
-    const base64Digest = forge.util.encode64(digest.getBytes());
-    return base64Digest;
-}
-
-async function validar_xml(xml) {
-
-    const signed_xml = xml
-    // Ruta del archivo WSDL
-    const wsdl_url = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl';
-    // const wsdl_url = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl';
-
-    try {
-        // Codificar el contenido XML en base64
-        const xml_bytes = Buffer.from(signed_xml, 'utf-8');
-        const xml_base64 = xml_bytes.toString('base64');
-
-        // Configurar la solicitud SOAP
-        const xml_request = `
-            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ec="http://ec.gob.sri.ws.recepcion">
-                <soapenv:Header/>
-                <soapenv:Body>
-                    <ec:validarComprobante>
-                        <xml>${xml_base64}</xml>
-                    </ec:validarComprobante>
-                </soapenv:Body>
-            </soapenv:Envelope>
-        `;
-
-        // Realizar la solicitud POST a la URL del servicio web con Axios
-        const response = await axios.post(wsdl_url, xml_request, {
-            headers: {
-                'Content-Type': 'text/xml',
-            },
-        });
-
-        // Procesar la respuesta del servicio web
-        const resultXML = response.data;
-        return resultXML.toString();
-
-    } catch (error) {
-        // Manejar errores, por ejemplo, mostrar un mensaje de error
-        console.error("Error al validar el XML:", error);
-        return "Error al validar el XML";
-    }
 }
 
 async function signXml2(p12Password, invoiceXml) {
@@ -650,7 +588,49 @@ async function signXml2(p12Password, invoiceXml) {
     return xml.replace(/(<[^<]+)$/, xadesBes + "$1")
 }
 
-async function signXml(p12Password, invoiceXml) {
+async function validar_xml(xml) {
+
+    const signed_xml = xml
+    // Ruta del archivo WSDL
+    const wsdl_url = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl';
+    // const wsdl_url = 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl';
+
+    try {
+        // Codificar el contenido XML en base64
+        const xml_bytes = Buffer.from(signed_xml, 'utf-8');
+        const xml_base64 = xml_bytes.toString('base64');
+
+        // Configurar la solicitud SOAP
+        const xml_request = `
+            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ec="http://ec.gob.sri.ws.recepcion">
+                <soapenv:Header/>
+                <soapenv:Body>
+                    <ec:validarComprobante>
+                        <xml>${xml_base64}</xml>
+                    </ec:validarComprobante>
+                </soapenv:Body>
+            </soapenv:Envelope>
+        `;
+
+        // Realizar la solicitud POST a la URL del servicio web con Axios
+        const response = await axios.post(wsdl_url, xml_request, {
+            headers: {
+                'Content-Type': 'text/xml',
+            },
+        });
+
+        // Procesar la respuesta del servicio web
+        const resultXML = response.data;
+        return resultXML.toString();
+
+    } catch (error) {
+        // Manejar errores, por ejemplo, mostrar un mensaje de error
+        console.error("Error al validar el XML:", error);
+        return "Error al validar el XML";
+    }
+}
+
+/*async function signXml(p12Password, invoiceXml) {
 
     const arrayBuffer = await getP12S3()
     let xml = invoiceXml
@@ -665,7 +645,7 @@ async function signXml(p12Password, invoiceXml) {
     const asn1 = arrayBuffer
     const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, false, p12Password)
 
-    /* =================PUBLIC CERT PEM==================*/
+    // =================PUBLIC CERT PEM==================
 
     let publicCertPem = null
 
@@ -678,7 +658,7 @@ async function signXml(p12Password, invoiceXml) {
         })
     })
 
-    /* ========================== */
+    // ========================== 
 
     const pkcs8Bags = p12.getBags({
         bagType: forge.pki.oids.pkcs8ShroudedKeyBag,
@@ -777,14 +757,14 @@ async function signXml(p12Password, invoiceXml) {
 
     const isoDateTime = date.toISOString().slice(0, 19)
 
-    /*==================HASH PUBLIC CERT PEM================*/
+    //==================HASH PUBLIC CERT PEM================
 
-    /* let pubCert = forge.pki.certificateFromPem(publicCertPem)
-    const mdPCP = forge.md.sha1.create()
-    mdPCP.update(pubCert.getEncoded())
-    let certDigest = mdPCP.digest().toBase64() */
+    // let pubCert = forge.pki.certificateFromPem(publicCertPem)
+    //const mdPCP = forge.md.sha1.create()
+    //mdPCP.update(pubCert.getEncoded())
+    //let certDigest = mdPCP.digest().toBase64() 
 
-    /* ============================== */
+    // ============================== 
 
     let signedProperties = ""
     signedProperties +=
@@ -792,7 +772,7 @@ async function signXml(p12Password, invoiceXml) {
         signatureNumber +
         "-SignedProperties" +
         signedPropertiesNumber +
-        '">'/*  */
+        '">'/*  *
 
     signedProperties += "<etsi:SignedSignatureProperties>"
     signedProperties += "<etsi:SigningTime>"
@@ -859,7 +839,7 @@ async function signXml(p12Password, invoiceXml) {
     keyInfo += "</ds:Exponent>"
     keyInfo += "\n</ds:RSAKeyValue>"
     keyInfo += "\n</ds:KeyValue>"
-    keyInfo += /*  */"\n</ds:KeyInfo>"
+    keyInfo += "\n</ds:KeyInfo>"
 
     const sha1KeyInfo = sha1Base64(
         keyInfo.replace("<ds:KeyInfo", "<ds:KeyInfo " + nameSpaces),
@@ -955,7 +935,7 @@ async function signXml(p12Password, invoiceXml) {
 
     return xml.replace(/(<[^<]+)$/, xadesBes + "$1");
 }
-
+*/
 
 /* async function signXml(p12Password, invoiceXml) {
 
@@ -1309,22 +1289,31 @@ export async function POST(request) {
             to: updatedSale.billData.email,
             subject: `Comprobante Electronico: ${invoice.factura.infoTributaria.claveAcceso}`,
             text: `Gracias por tu compra, puedes revisar tu comprobante electronico en el archivo: `,
-            attachments: [
+            /* attachments: [
                 {
-                    filename: `${invoice.factura.infoTributaria.claveAcceso}.xml`, // The name of the attached file
-                    content: signedXml.toString(), // The XML data as a string
+                    filename: `${invoice.factura.infoTributaria.claveAcceso}.xml`,
+                    content: signedXml.toString(), 
                 },
-            ],
+            ], */
         }
+
+        await Sale.updateOne(
+            { _id: id },
+            {
+                $set: {
+                    facNum: invoice.factura.infoTributaria.claveAcceso
+                },
+            },
+        )
+        console.log(authorizationResult.RespuestaAutorizacionComprobante.autorizaciones.autorizacion.mensajes.mensaje)
 
         try {
             // Send the email
             const info = await transporter.sendMail(mailOptions)
-            console.log('Email sent: ', info.response)
 
             return NextResponse.json(
                 {
-                    msg: info.response
+                    msg: authorizationResult
                 },
                 { status: 200 }
             )

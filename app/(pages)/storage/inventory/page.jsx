@@ -6,6 +6,7 @@ import Trash from '@public/assets/icons/btn-trash.webp'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import axios from '@node_modules/axios'
+import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 
 const Page = () => {
 
@@ -192,9 +193,13 @@ const Page = () => {
       handleIncomplete()
     } else {
       setLoading(true)
+      const token = localStorage.getItem('APSOQMEU')
+      const decoded = jwtDecode(token)
+      const user = decoded.name
       const dataObject = {
         reason: reason,
-        cart: proCart
+        cart: proCart,
+        user: user
       }
 
       try {

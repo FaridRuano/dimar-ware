@@ -1,13 +1,33 @@
 import connectMongoDB from "@libs/mongodb"
 import Client from "@models/clientModel"
 import Sale from "@models/saleModel"
+import User from "@models/userModal"
 import { NextResponse } from "next/server"
 
 export async function GET(request) {
 
+    const url = request.nextUrl
+    const user = url.searchParams.get('user') || null
+
+    const userType = await User.findOne({ name: user }, 'rol')
+
+    let query = {}
+
+    if (userType.rol !== 'Administrador') {
+        query['saler'] = user
+    }
+
     await connectMongoDB()
 
-    const sales = await Sale.find({}, "_id cod billData.name total updatedAt")
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+
+    const endOfDay = new Date()
+    endOfDay.setHours(23, 59, 59, 999)
+
+    query.updatedAt = { $gte: startOfDay, $lt: endOfDay };
+
+    const sales = await Sale.find(query, "_id cod billData.name total updatedAt")
         .sort({ updatedAt: -1 })
         .limit(15)
 
@@ -27,12 +47,6 @@ export async function GET(request) {
         total: sale.total,
         date: sale.updatedAt,
     }))
-
-    const startOfDay = new Date()
-    startOfDay.setHours(0, 0, 0, 0)
-
-    const endOfDay = new Date()
-    endOfDay.setHours(23, 59, 59, 999)
 
     const totalSales = await Sale.aggregate([
         {

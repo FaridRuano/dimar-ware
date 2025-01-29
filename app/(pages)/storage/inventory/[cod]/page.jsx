@@ -12,10 +12,11 @@ import Deselect from '@public/assets/icons/btn-deselect.webp'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
+import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 
 const Page = ({ params }) => {
 
-  const { id } = React.use(params)
+  const { cod } = React.use(params)
 
   const router = useRouter()
 
@@ -40,10 +41,10 @@ const Page = ({ params }) => {
 
   const [totalPages, setTotalPages] = useState(1)
 
-  const fetchOneData = async (_id) => {
+  const fetchOneData = async (cod) => {
     try {
       setLoading(true)
-      const res = await axios.get(`/api/storage/products/single?id=${_id}&action=${'one'}`)
+      const res = await axios.get(`/api/storage/products/single?cod=${cod}&action=${'one'}`)
       const prod = res.data.data
       setProduct({
         cod: prod.cod,
@@ -61,7 +62,7 @@ const Page = ({ params }) => {
   const fetchData = async (page = 1) => {
     try {
       setLoading(true)
-      const res = await axios.get(`/api/storage/products/single?id=${id}&page=${page}`)
+      const res = await axios.get(`/api/storage/products/single?cod=${cod}&page=${page}`)
       setData(res.data.data)
       setCurrentPage(res.data.currentPage)
       setTotalPages(res.data.totalPages)
@@ -144,13 +145,18 @@ const Page = ({ params }) => {
       handleIncomplete()
     } else {
       setErrIncomplete(false)
-
+      const token = localStorage.getItem('APSOQMEU')
+      const decoded = jwtDecode(token)
+      const user = decoded.name
       const dataObject = {
-        id: id,
+        cod: cod,
+        name: product.name,
         amount: newData.amount,
         method: method,
-        reason: newData.reason
+        reason: newData.reason,
+        user: user
       }
+
 
       try {
         const res = await axios.post(`/api/storage/products/single`, dataObject)
@@ -158,7 +164,7 @@ const Page = ({ params }) => {
           amount: '',
           reason: '',
         })
-        fetchOneData(id)
+        fetchOneData(cod)
         fetchData()
         handleAdd('')
       } catch (e) {
@@ -168,9 +174,8 @@ const Page = ({ params }) => {
     }
   }
 
-
   useEffect(() => {
-    fetchOneData(id)
+    fetchOneData(cod)
     fetchData()
   }, [])
 
@@ -199,7 +204,7 @@ const Page = ({ params }) => {
                 <span><b>Stock:</b></span>
               </div>
               <div className="title-container">
-                <span><b>{product.stock}</b> metros</span>
+                <span><b>{product.stock}</b> {product.und}</span>
               </div>
             </div>
           </div>

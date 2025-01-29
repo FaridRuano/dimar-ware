@@ -28,7 +28,7 @@ export async function GET(request) {
 
         let totalPages
 
-        products = await Product.find(query, "-user -stock -inventory -createdAt -updatedAt -__v")
+        products = await Product.find(query, "-user -stock -createdAt -updatedAt -__v")
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(limit)
@@ -82,13 +82,11 @@ export async function POST(request){
         }
 
 
-        const inventory = []
-
         const stock = 0
 
         const status = true
 
-        await Product.create({ cod: newCod, name, cat, und, price, user, inventory, stock, status })
+        await Product.create({ cod: newCod, name, cat, und, price, user, stock, status })
 
         return NextResponse.json(
             {

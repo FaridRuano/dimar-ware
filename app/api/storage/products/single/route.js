@@ -1,4 +1,5 @@
 import connectMongoDB from "@libs/mongodb"
+import Inventory from "@models/inventoryModel";
 import Product from "@models/productModel";
 import { NextResponse } from "next/server"
 
@@ -8,10 +9,10 @@ export async function GET(request) {
 
     const url = request.nextUrl
 
-    const id = url.searchParams.get('id') || null
+    const cod = url.searchParams.get('cod') || null
     const action = url.searchParams.get('action') || null
 
-    if (!id) {
+    if (!cod) {
         return NextResponse.json(
             {
                 message: 'Missing Info',
@@ -25,7 +26,7 @@ export async function GET(request) {
 
     if (action === 'one') {
 
-        const product = await Product.findById(id).select('-user -inventory -createdAt -updatedAt -__v')
+        const product = await Product.findOne({cod: cod}).select('-user -inventory -createdAt -updatedAt -__v')
 
         if (!product) {
             return NextResponse.json(
@@ -40,25 +41,18 @@ export async function GET(request) {
         const limit = parseInt(url.searchParams.get('limit')) || 10
         const skip = (page - 1) * limit
 
-        const product = await Product.findById(id).select('+inventory')
+        const inventory = await Inventory.find({cod: cod})
+        .sort({createdAt: -1})
 
-        if (!product) {
-            return NextResponse.json(
-                { message: 'Product not found' },
-                { status: 404 }
-            )
-        }
+        const totalInv = inventory.length
 
-        product.inventory.sort((a, b) => new Date(b.date) - new Date(a.date))
-
-        const totalInv = product.inventory.length
         const totalPages = Math.ceil(totalInv / limit)
 
-        const inventory = product.inventory.slice(skip, skip + limit)
+        const data = inventory.slice(skip, skip + limit)
 
         return NextResponse.json(
             {
-                data: inventory,
+                data: data,
                 totalPages: totalPages,
                 currentPage: page,
             },
@@ -75,11 +69,11 @@ export async function POST(request) {
 
         await connectMongoDB()
 
-        const { id, amount, reason, method } = await request.json()
+        const { cod, name, amount, reason, method, user } = await request.json()
 
-        if (!id || !amount || !reason) { return NextResponse.json({ message: 'Missing required fields', error: true }, { status: 400 }) }
+        if (!cod || !amount || !reason || !user || !name) { return NextResponse.json({ message: 'Missing required fields', error: true }, { status: 400 }) }
 
-        const product = await Product.findById(id)
+        const product = await Product.findOne({cod: cod})
 
         if (!product) {
             return NextResponse.json(
@@ -96,25 +90,20 @@ export async function POST(request) {
         if (method === 'add') {
             let newStock = parseFloat(product.stock) + parseFloat(amount);
 
-            product.inventory.push({
-                reason,
-                amount,
-                method: 'Entrada',
-                newStock,
-                date: new Date().toISOString() // Fecha de registro en formato ISO
-            });
+            const newInventory = new Inventory({
+                cod, name, newStock, amount, reason, method: 'Entrada', user
+            })
 
-            product.stock = newStock;
+            await newInventory.save()
+
+            product.stock = newStock
         } else {
             let newStock = parseFloat(product.stock) - parseFloat(amount);
 
-            product.inventory.push({
-                reason,
-                amount: -amount,
-                method: 'Salida',
-                newStock,
-                date: new Date().toISOString() // Fecha de registro en formato ISO
-            });
+            const newInventory = new Inventory({
+                cod, name, newStock, amount: -amount, reason, method: 'Salida', user
+            })
+            await newInventory.save()
 
             product.stock = newStock;
         }

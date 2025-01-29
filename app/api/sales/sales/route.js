@@ -1,7 +1,9 @@
 import connectMongoDB from "@libs/mongodb"
 import Client from "@models/clientModel"
+import Inventory from "@models/inventoryModel"
 import Product from "@models/productModel"
 import Sale from "@models/saleModel"
+import User from "@models/userModal"
 import { NextResponse } from "next/server"
 import nodemailer from 'nodemailer';
 
@@ -17,20 +19,27 @@ export async function GET(request) {
         const term = url.searchParams.get('term') || null
         const user = url.searchParams.get('user') || null
 
+        const userType = await User.findOne({ name: user }, 'rol')
+
         const skip = (page - 1) * limit
+
         let query = {}
+
+        if (userType.rol !== 'Administrador') {
+            query['saler'] = user
+        }
 
         if (term) {
             query['billData.name'] = { $regex: new RegExp(term, 'i') }
         }
 
-        const totalSales = await Sale.countDocuments()
+        const totalSales = await Sale.countDocuments(query)
 
-        const totalSalesPending = await Sale.countDocuments({ status: 'Pendiente' })
+        const totalSalesPending = await Sale.countDocuments({ ...query, status: 'Pendiente', })
 
-        const totalSalesToDeliver = await Sale.countDocuments({ status: 'Por Entregar' })
+        const totalSalesToDeliver = await Sale.countDocuments({ ...query, status: 'Por Entregar' })
 
-        const totalSalesComplete = await Sale.countDocuments({ status: 'Completa' })
+        const totalSalesComplete = await Sale.countDocuments({ ...query, status: 'Completa' })
 
         let sales
 
@@ -46,7 +55,7 @@ export async function GET(request) {
             totalPages = Math.ceil(totalSales / limit)
 
         } else if (type === 2) {
-            sales = await Sale.find({ status: 'Pendiente' }, '_id cod billData.name total status')
+            sales = await Sale.find({ ...query, status: 'Pendiente' }, '_id cod billData.name total status')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -55,7 +64,7 @@ export async function GET(request) {
             totalPages = Math.ceil(totalSalesPending / limit)
 
         } else if (type === 3) {
-            sales = await Sale.find({ status: 'Por Entregar' }, '_id cod billData.name total status')
+            sales = await Sale.find({ ...query, status: 'Por Entregar' }, '_id cod billData.name total status')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -64,7 +73,7 @@ export async function GET(request) {
             totalPages = Math.ceil(totalSalesToDeliver / limit)
 
         } else if (type === 4) {
-            sales = await Sale.find({ status: 'Completa' }, '_id cod billData.name total status')
+            sales = await Sale.find({ ...query, status: 'Completa' }, '_id cod billData.name total status')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -212,7 +221,7 @@ export async function DELETE(request) {
 export async function PUT(request) {
     try {
 
-        const { id } = await request.json()
+        const { id, user } = await request.json()
 
         await connectMongoDB()
 
@@ -247,17 +256,15 @@ export async function PUT(request) {
                 { cod },
                 {
                     $set: { stock: newStock },
-                    $push: {
-                        inventory: {
-                            reason: `Venta: ${updatedSale.cod}`,
-                            amount: -amount,
-                            method: 'Salida',
-                            newStock,
-                            date: new Date(), 
-                        },
-                    },
                 },
-            );
+            )
+
+            const inventory = new Inventory({
+                cod, name: product.name, newStock, amount: -amount, reason: `Venta: ${updatedSale.cod}`, method: 'Salida', user
+            })
+
+            await inventory.save()
+
         }
 
         return NextResponse.json(

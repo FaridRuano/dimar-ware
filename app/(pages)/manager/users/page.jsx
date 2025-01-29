@@ -52,7 +52,7 @@ const Page = () => {
   const handleNextPage = () => {
     setCurrentPage(prevPage => prevPage + 1)
   }
-  
+
   const handlePrevPage = () => {
     setCurrentPage(prevPage => (prevPage > 1 ? prevPage - 1 : prevPage))
   }
@@ -60,11 +60,11 @@ const Page = () => {
   const handleFirstPage = () => {
     setCurrentPage(1);
   }
-  
+
   const handleLastPage = () => {
     setCurrentPage(totalPages)
   }
-  
+
 
   /* Form Handler */
 
@@ -301,259 +301,352 @@ const Page = () => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     setFilteredData(data.slice(indexOfFirstItem, indexOfLastItem))
   }, [currentPage, data])
-  
 
-  return (
-    <>
-      <ConfirmModal active={delModal} handleModal={handleDelModal} msg={'eliminar'} handleResponse={handleDeleteRow} />
-      <div className='pagename'>
-        <span>
-          Usuarios
-        </span>
-      </div>
-      <div className="workspace">
-        <div className="container">
+  if (loading) {
+    return (
+      <>
+        <div className='pagename'>
+          <span>
+            Usuarios
+          </span>
+        </div>
+        <div className="workspace loading">
+          <div className="container">
+            <div className="row">
+              <div className="title-container">
+                <span>Total <b>usuarios</b></span>
+              </div>
+              <div className="title-container">
+                <span><b>0</b></span>
+              </div>
+            </div>
+          </div>
           <div className="row">
-            <div className="title-container">
-              <span>Total <b>usuarios</b></span>
-            </div>
-            <div className="title-container">
-              <span><b>{totalData()}</b></span>
-            </div>
-          </div>
-        </div>
-        <div className="row">
-          <div className="warp">
-            <div className={!isAdd ? "btn-base-div" : "btn-base-div gray"} onClick={handleAdd}>
-              <div className="btn-icon">
-                <Image src={!isAdd ? BtnAdd : BtnDelete} width={'auto'} height={13} alt='Add' />
-              </div>
-              <div className="btn-name">
-                {
-                  isAdd ? (
-                    'Cancelar'
-                  ) : (
-                    'Agregar'
-                  )
-                }
-              </div>
-            </div>
-          </div>
-
-          <div className={isAdd ? "warp hide" : "warp"}>
-            <div className={`btn-base-div secondary ${selRow._id === 0 ? 'dis' : ''}`} onClick={handleEdit}>
-              <div className="btn-icon">
-                <Image src={BtnEdit} width={'auto'} height={13} alt='Edit' />
-              </div>
-              <div className="btn-name">
-                Editar
-              </div>
-            </div>
-            <div className={`btn-base-div gray ${selRow._id === 0 ? 'dis' : ''}`} onClick={handleDisable}>
-              <div className="btn-icon">
-                {
-                  selRow && selRow.status !== undefined ? (
-                    selRow.status ? (
-                      <Image src={BtnDisable} width={'auto'} height={13} alt='Disable' />
-                    ) : (
-                      <Image src={Check} width={'auto'} height={13} alt='Enable' />
-                    )
-                  ) : (
-                    <Image src={BtnDisable} width={'auto'} height={13} alt='Disable' />
-                  )
-                }
-              </div>
-              <div className="btn-name">
-                {
-                  selRow && selRow.status !== undefined ? (
-                    selRow.status ? (
-                      'Deshabilitar'
-                    ) : (
-                      'Habilitar'
-                    )
-                  ) : (
-                    'Deshabilitar'
-                  )
-                }
-              </div>
-            </div>
-            <div className={`btn-base-div black ${selRow._id === 0 ? 'dis' : ''}`} onClick={() => handleDelete()}>
-              <div className="btn-icon">
-                <Image src={BtnDelete} width={'auto'} height={13} alt='Delete' />
-              </div>
-              <div className="btn-name">
-                Eliminar
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {
-          isAdd ? (
-            <>
-              <div className="container">
-                <div className="title-container">
-                  <b>Datos del usuario</b>
+            <div className="warp">
+              <div className={!isAdd ? "btn-base-div" : "btn-base-div gray"} onClick={handleAdd}>
+                <div className="btn-icon">
+                  <Image src={!isAdd ? BtnAdd : BtnDelete} width={'auto'} height={13} alt='Add' />
                 </div>
-                <form className='form-container' type='submit' onSubmit={sendData}>
-                  <div className="row">
-                    <div className="input-form">
-                      <div className='input-name'>
-                        Nombre:
-                      </div>
-                      <input type="text" value={newData.name} onChange={handleNewData} name='name' />
-                    </div>
-                    <div className="input-form">
-                      <div className='input-name'>
-                        Email:
-                      </div>
-                      <input className={errEmail ? 'err' : ''} type="text" value={newData.email} onChange={handleNewData} name='email' />
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div className="input-form">
-                      <div className='input-name'>
-                        Rol:
-                      </div>
-                      <select value={newData.rol} onChange={handleNewData} name='rol'>
-                        <option value="">Seleccionar</option>
-                        <option value="Gerente">Gerente</option>
-                        <option value="Vendedor">Ventas</option>
-                        <option value="Bodeguero">Bodeguero</option>
-                        <option value="Cajero">Cajero</option>
-                      </select>
-                    </div>
-                    {
-                      isEdit ? (
-                        <div className="input-form dis">
-                          <div className='input-name'>
-                            Contraseña:
-                          </div>
-                          <input type="password" value={newData.password} onChange={handleNewData} name='password' />
-                        </div>
-                      ) : (
-                        <div className="input-form">
-                          <div className='input-name'>
-                            Contraseña:
-                          </div>
-                          <input type="password" value={newData.password} onChange={handleNewData} name='password' />
-                        </div>
-                      )
-                    }
-                  </div>
-                  <div className="footer-a-sb">
-                    <div className={errIncomplete ? "error-incomplete" : "error-incomplete hide"}>
-                      Algunos campos estan vacios.
-                    </div>
-                    <div className={`btn-base secondary-btn`}>
-                      <button type='submit'>Guardar</button>
-                    </div>
-                  </div>
-                </form>
+                <div className="btn-name">
+                  {
+                    isAdd ? (
+                      'Cancelar'
+                    ) : (
+                      'Agregar'
+                    )
+                  }
+                </div>
               </div>
-            </>
-          ) : (
-            <>
-              {
-                totalData() > 0 ? (
-                  <>
-                    <div className="container">
-                      <div className="search-bar">
-                        <div className="search-icon">
-                          <Image src={Search} width={'auto'} height={20} alt='Search' />
+            </div>
+
+            <div className={isAdd ? "warp hide" : "warp"}>
+              <div className={`btn-base-div secondary ${selRow._id === 0 ? 'dis' : ''}`} onClick={handleEdit}>
+                <div className="btn-icon">
+                  <Image src={BtnEdit} width={'auto'} height={13} alt='Edit' />
+                </div>
+                <div className="btn-name">
+                  Editar
+                </div>
+              </div>
+              <div className={`btn-base-div gray ${selRow._id === 0 ? 'dis' : ''}`} onClick={handleDisable}>
+                <div className="btn-icon">
+                  {
+                    selRow && selRow.status !== undefined ? (
+                      selRow.status ? (
+                        <Image src={BtnDisable} width={'auto'} height={13} alt='Disable' />
+                      ) : (
+                        <Image src={Check} width={'auto'} height={13} alt='Enable' />
+                      )
+                    ) : (
+                      <Image src={BtnDisable} width={'auto'} height={13} alt='Disable' />
+                    )
+                  }
+                </div>
+                <div className="btn-name">
+                  {
+                    selRow && selRow.status !== undefined ? (
+                      selRow.status ? (
+                        'Deshabilitar'
+                      ) : (
+                        'Habilitar'
+                      )
+                    ) : (
+                      'Deshabilitar'
+                    )
+                  }
+                </div>
+              </div>
+              <div className={`btn-base-div black ${selRow._id === 0 ? 'dis' : ''}`} onClick={() => handleDelete()}>
+                <div className="btn-icon">
+                  <Image src={BtnDelete} width={'auto'} height={13} alt='Delete' />
+                </div>
+                <div className="btn-name">
+                  Eliminar
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="container">
+            <div className="title-container">
+              <span>No existen <b>datos que mostrar</b></span>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  } else {
+    return (
+      <>
+        <ConfirmModal active={delModal} handleModal={handleDelModal} msg={'eliminar'} handleResponse={handleDeleteRow} />
+        <div className='pagename'>
+          <span>
+            Usuarios
+          </span>
+        </div>
+        <div className="workspace">
+          <div className="container">
+            <div className="row">
+              <div className="title-container">
+                <span>Total <b>usuarios</b></span>
+              </div>
+              <div className="title-container">
+                <span><b>{totalData()}</b></span>
+              </div>
+            </div>
+          </div>
+          <div className="row">
+            <div className="warp">
+              <div className={!isAdd ? "btn-base-div" : "btn-base-div gray"} onClick={handleAdd}>
+                <div className="btn-icon">
+                  <Image src={!isAdd ? BtnAdd : BtnDelete} width={'auto'} height={13} alt='Add' />
+                </div>
+                <div className="btn-name">
+                  {
+                    isAdd ? (
+                      'Cancelar'
+                    ) : (
+                      'Agregar'
+                    )
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div className={isAdd ? "warp hide" : "warp"}>
+              <div className={`btn-base-div secondary ${selRow._id === 0 ? 'dis' : ''}`} onClick={handleEdit}>
+                <div className="btn-icon">
+                  <Image src={BtnEdit} width={'auto'} height={13} alt='Edit' />
+                </div>
+                <div className="btn-name">
+                  Editar
+                </div>
+              </div>
+              <div className={`btn-base-div gray ${selRow._id === 0 ? 'dis' : ''}`} onClick={handleDisable}>
+                <div className="btn-icon">
+                  {
+                    selRow && selRow.status !== undefined ? (
+                      selRow.status ? (
+                        <Image src={BtnDisable} width={'auto'} height={13} alt='Disable' />
+                      ) : (
+                        <Image src={Check} width={'auto'} height={13} alt='Enable' />
+                      )
+                    ) : (
+                      <Image src={BtnDisable} width={'auto'} height={13} alt='Disable' />
+                    )
+                  }
+                </div>
+                <div className="btn-name">
+                  {
+                    selRow && selRow.status !== undefined ? (
+                      selRow.status ? (
+                        'Deshabilitar'
+                      ) : (
+                        'Habilitar'
+                      )
+                    ) : (
+                      'Deshabilitar'
+                    )
+                  }
+                </div>
+              </div>
+              <div className={`btn-base-div black ${selRow._id === 0 ? 'dis' : ''}`} onClick={() => handleDelete()}>
+                <div className="btn-icon">
+                  <Image src={BtnDelete} width={'auto'} height={13} alt='Delete' />
+                </div>
+                <div className="btn-name">
+                  Eliminar
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {
+            isAdd ? (
+              <>
+                <div className="container">
+                  <div className="title-container">
+                    <b>Datos del usuario</b>
+                  </div>
+                  <form className='form-container' type='submit' onSubmit={sendData}>
+                    <div className="row">
+                      <div className="input-form">
+                        <div className='input-name'>
+                          Nombre:
                         </div>
-                        <input type="text" placeholder='Buscar' value={searchVal} onChange={(e) => setSearchVal(e.target.value)} />
-                        <div className={selRow._id === 0 ? "deselect-icon hide" : "deselect-icon"} onClick={() => setSelRow({ _id: 0 })}>
-                          <Image src={Deselect} width={'auto'} height={20} alt='Search' />
+                        <input type="text" value={newData.name} onChange={handleNewData} name='name' />
+                      </div>
+                      <div className="input-form">
+                        <div className='input-name'>
+                          Email:
                         </div>
+                        <input className={errEmail ? 'err' : ''} type="text" value={newData.email} onChange={handleNewData} name='email' />
+                      </div>
+                    </div>
+                    <div className="row">
+                      <div className="input-form">
+                        <div className='input-name'>
+                          Rol:
+                        </div>
+                        <select value={newData.rol} onChange={handleNewData} name='rol'>
+                          <option value="">Seleccionar</option>
+                          <option value="Gerente">Gerente</option>
+                          <option value="Vendedor">Ventas</option>
+                          <option value="Bodeguero">Bodeguero</option>
+                          <option value="Cajero">Cajero</option>
+                        </select>
                       </div>
                       {
-                        filteredData.length > 0 ? (
-                          <div className="datatable-container">
-                            <table>
-                              <thead>
-                                <tr className='table-04 nb'>
-                                  <th>
-                                  </th>
-                                  <th>
-                                    Nombre
-                                  </th>
-                                  <th>
-                                    Email
-                                  </th>
-                                  <th>
-                                    Rol
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {
-                                  filteredData.map((dat, i) => (
-                                    <tr key={i} className={selRow._id === dat._id ? 'table-04 active' : 'table-04'} onClick={() => setSelRow(dat)}>
-                                      <td>
-                                        {
-                                          dat.status ? (
-                                            <div className="row-status"></div>
-                                          ) : (
-                                            <div className="row-status gray"></div>
-                                          )
-                                        }
-                                      </td>
-                                      <td>
-                                        {dat.name}
-                                      </td>
-                                      <td>
-                                        {dat.email}
-                                      </td>
-                                      <td>
-                                        {dat.rol}
-                                      </td>
-                                    </tr>
-                                  ))
-                                }
-                              </tbody>
-                            </table>
+                        isEdit ? (
+                          <div className="input-form dis">
+                            <div className='input-name'>
+                              Contraseña:
+                            </div>
+                            <input type="password" value={newData.password} onChange={handleNewData} name='password' />
                           </div>
                         ) : (
-                          <div className="title-container">
-                            <span>No existen <b>datos que mostrar</b></span>
+                          <div className="input-form">
+                            <div className='input-name'>
+                              Contraseña:
+                            </div>
+                            <input type="password" value={newData.password} onChange={handleNewData} name='password' />
                           </div>
                         )
                       }
-
                     </div>
-
-                  </>
-                ) : (
-                  <div className="container">
-                    <div className="title-container">
-                      <span>No existen <b>datos que mostrar</b></span>
+                    <div className="footer-a-sb">
+                      <div className={errIncomplete ? "error-incomplete" : "error-incomplete hide"}>
+                        Algunos campos estan vacios.
+                      </div>
+                      <div className={`btn-base secondary-btn`}>
+                        <button type='submit'>Guardar</button>
+                      </div>
                     </div>
-                  </div>
-                )
-              }
-              {
-                totalData() > 0 && (
-                  <div className="dt-footer">
-                    <div className="warp">
-                      <Image className={`arrow ${currentPage === 1 ? 'dis':''}`} src={Start} width={'auto'} height={18} alt='Start' onClick={handleFirstPage} />
-                      <Image className={`arrow ${currentPage === 1 ? 'dis':''}`} src={Previous} width={'auto'} height={18} alt='Previous'  onClick={handlePrevPage}/>
-                      <span>
-                        <b>{currentPage} de {totalPages}</b>
-                      </span>
-                      <Image className={`arrow ${currentPage === totalPages ? 'dis':''}`} src={Next} width={'auto'} height={18} alt='Next' onClick={handleNextPage}/>
-                      <Image className={`arrow ${currentPage === totalPages ? 'dis':''}`} src={End} width={'auto'} height={18} alt='End' onClick={handleLastPage}/>
-                    </div>
-                  </div>
-                )
-              }
+                  </form>
+                </div>
+              </>
+            ) : (
+              <>
+                {
+                  totalData() > 0 ? (
+                    <>
+                      <div className="container">
+                        <div className="search-bar">
+                          <div className="search-icon">
+                            <Image src={Search} width={'auto'} height={20} alt='Search' />
+                          </div>
+                          <input type="text" placeholder='Buscar' value={searchVal} onChange={(e) => setSearchVal(e.target.value)} />
+                          <div className={selRow._id === 0 ? "deselect-icon hide" : "deselect-icon"} onClick={() => setSelRow({ _id: 0 })}>
+                            <Image src={Deselect} width={'auto'} height={20} alt='Search' />
+                          </div>
+                        </div>
+                        {
+                          filteredData.length > 0 ? (
+                            <div className="datatable-container">
+                              <table>
+                                <thead>
+                                  <tr className='table-04 nb'>
+                                    <th>
+                                    </th>
+                                    <th>
+                                      Nombre
+                                    </th>
+                                    <th>
+                                      Email
+                                    </th>
+                                    <th>
+                                      Rol
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {
+                                    filteredData.map((dat, i) => (
+                                      <tr key={i} className={selRow._id === dat._id ? 'table-04 active' : 'table-04'} onClick={() => setSelRow(dat)}>
+                                        <td>
+                                          {
+                                            dat.status ? (
+                                              <div className="row-status"></div>
+                                            ) : (
+                                              <div className="row-status gray"></div>
+                                            )
+                                          }
+                                        </td>
+                                        <td>
+                                          {dat.name}
+                                        </td>
+                                        <td>
+                                          {dat.email}
+                                        </td>
+                                        <td>
+                                          {dat.rol}
+                                        </td>
+                                      </tr>
+                                    ))
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="title-container">
+                              <span>No existen <b>datos que mostrar</b></span>
+                            </div>
+                          )
+                        }
 
-            </>
-          )
-        }
-      </div>
-    </>
-  )
+                      </div>
+
+                    </>
+                  ) : (
+                    <div className="container">
+                      <div className="title-container">
+                        <span>No existen <b>datos que mostrar</b></span>
+                      </div>
+                    </div>
+                  )
+                }
+                {
+                  totalData() > 0 && (
+                    <div className="dt-footer">
+                      <div className="warp">
+                        <Image className={`arrow ${currentPage === 1 ? 'dis' : ''}`} src={Start} width={'auto'} height={18} alt='Start' onClick={handleFirstPage} />
+                        <Image className={`arrow ${currentPage === 1 ? 'dis' : ''}`} src={Previous} width={'auto'} height={18} alt='Previous' onClick={handlePrevPage} />
+                        <span>
+                          <b>{currentPage} de {totalPages}</b>
+                        </span>
+                        <Image className={`arrow ${currentPage === totalPages ? 'dis' : ''}`} src={Next} width={'auto'} height={18} alt='Next' onClick={handleNextPage} />
+                        <Image className={`arrow ${currentPage === totalPages ? 'dis' : ''}`} src={End} width={'auto'} height={18} alt='End' onClick={handleLastPage} />
+                      </div>
+                    </div>
+                  )
+                }
+
+              </>
+            )
+          }
+        </div>
+      </>
+    )
+  }
 }
 
 export default Page

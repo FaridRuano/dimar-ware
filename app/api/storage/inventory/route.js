@@ -1,18 +1,19 @@
 import Product from "@models/productModel"
 import connectMongoDB from "@libs/mongodb"
 import { NextResponse } from "next/server"
+import Inventory from "@models/inventoryModel"
 
 export async function POST(request) {
     try {
 
         await connectMongoDB()
 
-        const { reason, cart } = await request.json()
+        const { reason, cart, user } = await request.json()
 
         for (const item of cart) {
             const { cod, amount, total } = item
 
-            const product = await Product.findOne({ cod })
+            const product = await Product.findOne({ cod: cod })
 
             if (!product) {
                 return NextResponse.json(
@@ -27,23 +28,26 @@ export async function POST(request) {
                 method = 'Salida'
             }
 
-            console.log(amount + ' ' + method)
-
             await Product.updateOne(
                 { cod },
                 {
                     $set: { stock: total },
-                    $push: {
-                        inventory: {
-                            reason: reason,
-                            amount: Number(amount),
-                            method: method,
-                            newStock: total,
-                            date: new Date()
-                        },
-                    },
                 },
             )
+
+            if (method === 'Entrada') {
+                const inventory = new Inventory({
+                    cod, name: product.name, newStock: total, amount, reason, method, user
+                })
+                await inventory.save()
+
+            } else {
+                const inventory = new Inventory({
+                    cod, name: product.name, newStock: total, amount, reason, method, user
+                })
+                await inventory.save()
+            }
+
         }
 
         return NextResponse.json(

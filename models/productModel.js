@@ -10,7 +10,6 @@ const productSchema = new Schema(
         stock: Number,
         user: String,
         status: Boolean,
-        inventory: []
     },
     {
         timestamps: true

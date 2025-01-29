@@ -28,6 +28,7 @@ const saleSchema = new Schema(
         notes: String,
         ptoEmi: String,
         codDoc: String,        
+        facNum: String,
     },{
         timestamps: true
     }

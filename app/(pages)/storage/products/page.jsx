@@ -487,7 +487,7 @@ const Page = () => {
                             data.map((dat, i) => (
                               <tr key={i} className={selRow._id === dat._id ? 'table-06 active' : 'table-06'}
                                 onClick={() => setSelRow(dat)}
-                                onDoubleClick={() => router.push(`/storage/inventory/${dat._id}`)}>
+                                onDoubleClick={() => router.push(`/storage/inventory/${dat.cod}`)}>
                                 <td>
                                   {
                                     dat.status ? (

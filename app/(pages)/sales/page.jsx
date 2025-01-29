@@ -3,6 +3,7 @@ import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import DtUser from '@public/assets/icons/sidebar-users.webp'
 import axios from '@node_modules/axios'
+import { jwtDecode } from '@node_modules/jwt-decode/build/cjs'
 
 const Page = () => {
 
@@ -24,8 +25,11 @@ const Page = () => {
 
   const fetchData = async () => {
     setLoading(false)
+    const token = localStorage.getItem('APSOQMEU')
+    const decoded = jwtDecode(token)
+    const user = decoded.name
     try {
-      const res = await axios.get('/api/sales')
+      const res = await axios.get(`/api/sales?user=${user}`)
       setDataSales(res.data.latestSales)
       setTotalSales(res.data.totalSales)
       setLatestClients(res.data.latestClients)
